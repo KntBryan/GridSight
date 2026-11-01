@@ -39,8 +39,9 @@ Deno.serve(async (request: Request) => {
         if (statusCode === 404 || statusCode === 410) await supabase.from("push_subscriptions").delete().eq("id", item.id);
       }
     }
+    // Always mark notification as processed so it doesn't block future notifications in the queue
+    await supabase.from("notifications").update({ delivered_at: new Date().toISOString() }).eq("id", notification.id);
     if (sent) {
-      await supabase.from("notifications").update({ delivered_at: new Date().toISOString() }).eq("id", notification.id);
       delivered += 1;
     }
   }

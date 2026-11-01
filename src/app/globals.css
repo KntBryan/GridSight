@@ -134,7 +134,7 @@ button { cursor: pointer; }
 .map-legend { position: absolute; z-index: 10; top: 12px; left: 12px; padding: 8px 10px; display: flex; gap: 12px; border: 1px solid #e4e8df; border-radius: 4px; background: #fffefaed; box-shadow: 0 2px 8px #2c42321a; }
 .map-legend span { display: flex; align-items: center; gap: 5px; color: #56645f; font-size: 8px; }
 .map-legend i { width: 7px; height: 7px; display: inline-block; border-radius: 50%; }
-.legend-red { background: var(--red); }.legend-gold { background: var(--gold); }.legend-green { background: var(--green); }
+.legend-red { background: var(--red); }.legend-gold { background: var(--gold); }.legend-green { background: var(--green); }.legend-blue { background: #3b82f6; }
 .map-locate { position: absolute; z-index: 10; right: 11px; bottom: 49px; width: 31px; height: 31px; display: grid; place-items: center; border: 1px solid #d8ded6; border-radius: 4px; background: #fffefa; color: #586a64; box-shadow: 0 2px 8px #26382b19; }
 .map-scale { position: absolute; z-index: 10; right: 14px; bottom: 16px; color: #53615b; font-size: 8px; text-shadow: 0 1px 2px #fff; }
 .scale-line { width: 24px; height: 5px; margin-right: 3px; display: inline-block; border: 1px solid #55645d; border-top: 0; }

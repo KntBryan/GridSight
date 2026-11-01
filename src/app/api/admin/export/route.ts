@@ -4,14 +4,17 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+type ExportArea = { name: string; city: string };
+type ExportOutage = { status: string; first_reported_at: string; restored_at: string | null };
+
 type ExportRow = {
   id: string;
   status: string;
   verification_status: string;
   notes: string | null;
   created_at: string;
-  areas: { name: string; city: string }[] | null;
-  outages: { status: string; first_reported_at: string; restored_at: string | null }[] | null;
+  areas: ExportArea | ExportArea[] | null;
+  outages: ExportOutage | ExportOutage[] | null;
 };
 
 function csvCell(value: unknown) {
@@ -49,8 +52,8 @@ export async function GET(request: NextRequest) {
   const rows = (data ?? []) as ExportRow[];
   const header = ["report_id", "area", "city", "report_status", "review_status", "notes", "reported_at", "outage_status", "outage_first_reported_at", "outage_restored_at"];
   const lines = [header.map(csvCell).join(","), ...rows.map((row) => {
-    const area = row.areas?.[0];
-    const outage = row.outages?.[0];
+    const area = Array.isArray(row.areas) ? row.areas[0] : row.areas;
+    const outage = Array.isArray(row.outages) ? row.outages[0] : row.outages;
     return [
       row.id,
       area?.name,
