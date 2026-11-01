@@ -572,8 +572,8 @@ export default function Home() {
                 />
                 <div className="map-scale"><span className="scale-line" /> 2 km</div>
                 <div className="map-legend">
-                  <span><i className="legend-green" />Active (power on)</span>
-                  <span><i className="legend-red" />Down (outage)</span>
+                  <span><i className="legend-green" />Active</span>
+                  <span><i className="legend-red" />Down</span>
                   <span><i className="legend-gold" />Checking</span>
                   <span><i className="legend-blue" />Restored</span>
                 </div>
@@ -614,7 +614,7 @@ export default function Home() {
                 <h3>
                   Grid Normal{" "}
                   <span className="inline-status" style={{ background: "#dcfce7", color: "#15803d", borderColor: "#86efac" }}>
-                    Active (power = true)
+                    Active
                   </span>
                 </h3>
                 <p>
@@ -649,7 +649,7 @@ export default function Home() {
                 <h3>
                   {selected.area}{" "}
                   <span className={`inline-status inline-${selected.status}`}>
-                    {selected.status === "active" ? "Down (power = false)" : selected.status === "unconfirmed" ? "Checking" : "Restored"}
+                    {selected.status === "active" ? "Down" : selected.status === "unconfirmed" ? "Checking" : "Restored"}
                   </span>
                 </h3>
                 <p>

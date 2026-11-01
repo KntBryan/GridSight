@@ -117,22 +117,20 @@ function MapClickListener({ onMapClick }: { onMapClick?: (coordinates: [number, 
 // 4-Tier Power Palette
 export const POWER_COLORS = {
   active: {
-    // power = true (normal grid operation)
     stroke: "#16a34a",
     fill: "#22c55e",
     halo: "#22c55e",
     fillOpacity: 0.12,
-    label: "Active (power = true)",
-    badge: "🟢 ACTIVE (power = true)",
+    label: "Active",
+    badge: "🟢 ACTIVE",
   },
   down: {
-    // power = false (blackout / outage)
     stroke: "#dc2626",
     fill: "#ef4444",
     halo: "#ef4444",
     fillOpacity: 0.38,
-    label: "Down (power = false)",
-    badge: "🔴 DOWN (power = false)",
+    label: "Down",
+    badge: "🔴 DOWN",
   },
   checking: {
     // flickering / unconfirmed reports
@@ -175,9 +173,9 @@ export function resolveBarangayPower(
       code: barangay.code,
       power: true,
       status: "active",
-      statusLabel: "Active (power = true)",
-      conditionText: "Normal Grid Operation · Power Online",
-      badge: "🟢 ACTIVE (power = true)",
+      statusLabel: "Active",
+      conditionText: "Normal Grid Operation · Operational",
+      badge: "🟢 ACTIVE",
       reports: 0,
       duration: "Normal continuous supply",
       territory,
@@ -196,9 +194,9 @@ export function resolveBarangayPower(
       code: barangay.code,
       power: false,
       status: "down",
-      statusLabel: "Down (power = false)",
+      statusLabel: "Down",
       conditionText: "Outage Confirmed · Blackout in Progress",
-      badge: "🔴 DOWN (power = false)",
+      badge: "🔴 DOWN",
       reports: matchingOutage.reports,
       duration: matchingOutage.reported,
       territory,
