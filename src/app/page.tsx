@@ -378,6 +378,13 @@ export default function Home() {
   };
   const activeCount = outages.filter((outage) => outage.status === "active").length;
   const reportCount = outages.reduce((total, outage) => total + outage.reports, 0);
+  const affectedBarangaysCount = new Set(
+    outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area)
+  ).size;
+  const gridConfidence =
+    affectedBarangaysCount === 0
+      ? 100
+      : Math.max(50, Math.round(100 - (affectedBarangaysCount / 54) * 100));
 
   function showToast(message: string) {
     setToast(message);
@@ -542,10 +549,53 @@ export default function Home() {
           </div>
 
           <div className="stats-strip">
-            <div className="stat-item"><span className="stat-icon stat-red"><Zap size={17} /></span><div><strong suppressHydrationWarning>{activeCount.toString().padStart(2, "0")}</strong><span>Active outages</span></div><small className="stat-trend negative">+2 today</small></div>
-            <div className="stat-item"><span className="stat-icon stat-gold"><MapPin size={17} /></span><div><strong suppressHydrationWarning>{new Set(outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area)).size.toString().padStart(2, "0")}</strong><span>Barangays affected</span></div><small className="stat-trend">of 54 tracked</small></div>
-            <div className="stat-item"><span className="stat-icon stat-green"><Activity size={17} /></span><div><strong suppressHydrationWarning>{reportCount}</strong><span>Reports today</span></div><small className="stat-trend positive">+18% vs avg</small></div>
-            <div className="stat-item reliability-stat"><span className="stat-icon stat-blue"><ShieldCheck size={17} /></span><div><strong>94<span className="stat-percent">%</span></strong><span>Grid confidence</span></div><small className="stat-trend">High signal</small></div>
+            <div className="stat-item">
+              <span className="stat-icon stat-red"><Zap size={17} /></span>
+              <div>
+                <strong suppressHydrationWarning>{activeCount.toString().padStart(2, "0")}</strong>
+                <span>Active outages</span>
+              </div>
+              {activeCount === 0 ? (
+                <small className="stat-trend positive">All clear</small>
+              ) : (
+                <small className="stat-trend negative">+{activeCount} active</small>
+              )}
+            </div>
+
+            <div className="stat-item">
+              <span className="stat-icon stat-gold"><MapPin size={17} /></span>
+              <div>
+                <strong suppressHydrationWarning>{affectedBarangaysCount.toString().padStart(2, "0")}</strong>
+                <span>Barangays affected</span>
+              </div>
+              <small className="stat-trend">
+                {affectedBarangaysCount === 0 ? "of 54 tracked" : `${affectedBarangaysCount} of 54 tracked`}
+              </small>
+            </div>
+
+            <div className="stat-item">
+              <span className="stat-icon stat-green"><Activity size={17} /></span>
+              <div>
+                <strong suppressHydrationWarning>{reportCount}</strong>
+                <span>Reports today</span>
+              </div>
+              {reportCount === 0 ? (
+                <small className="stat-trend positive">No disruptions</small>
+              ) : (
+                <small className="stat-trend positive">{reportCount} signal{reportCount === 1 ? "" : "s"}</small>
+              )}
+            </div>
+
+            <div className="stat-item reliability-stat">
+              <span className="stat-icon stat-blue"><ShieldCheck size={17} /></span>
+              <div>
+                <strong suppressHydrationWarning>{gridConfidence}<span className="stat-percent">%</span></strong>
+                <span>Grid confidence</span>
+              </div>
+              <small className={`stat-trend ${gridConfidence === 100 ? "positive" : ""}`}>
+                {gridConfidence === 100 ? "Optimal" : "High signal"}
+              </small>
+            </div>
           </div>
 
           <div className="content-grid">
