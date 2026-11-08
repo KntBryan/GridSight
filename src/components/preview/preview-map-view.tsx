@@ -84,8 +84,8 @@ export function PreviewMapView({ outages, onOpenReport }: PreviewMapViewProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search across 54 Surigao City barangays (e.g. Alang-alang, Taft, Washington)..."
-            className={`w-full bg-transparent text-[14px] outline-none ${
+            placeholder="Search 54 Surigao City barangays (e.g. Taft, Washington)…"
+            className={`w-full bg-transparent text-[13.5px] sm:text-[14px] outline-none ${
               isDark ? "text-white placeholder-white/40" : "text-slate-900 placeholder-slate-400"
             }`}
           />
@@ -128,7 +128,7 @@ export function PreviewMapView({ outages, onOpenReport }: PreviewMapViewProps) {
       </div>
 
       {/* Map Frame */}
-      <div className={`relative h-[540px] w-full overflow-hidden rounded-2xl border shadow-2xl ${
+      <div className={`relative h-[380px] sm:h-[480px] lg:h-[540px] w-full overflow-hidden rounded-2xl border shadow-2xl ${
         isDark ? "border-white/10 bg-[#081524]" : "border-slate-200 bg-slate-100"
       }`}>
         <PreviewLeafletMap
@@ -138,31 +138,31 @@ export function PreviewMapView({ outages, onOpenReport }: PreviewMapViewProps) {
         />
 
         {/* Floating Glass Legend */}
-        <div className={`pointer-events-none absolute bottom-4 left-4 z-[500] rounded-xl border px-3.5 py-3 shadow-lg backdrop-blur-md transition-colors ${
+        <div className={`pointer-events-none absolute bottom-3 left-3 sm:bottom-4 sm:left-4 z-[500] rounded-xl border p-2.5 sm:px-3.5 sm:py-3 shadow-lg backdrop-blur-md transition-colors ${
           isDark
             ? "border-white/15 bg-[#061120]/90 text-white/90"
             : "border-slate-200 bg-white/92 text-slate-800"
         }`}>
-          <p className={`mb-2 text-[10px] font-bold uppercase tracking-[0.16em] ${
+          <p className={`mb-1.5 sm:mb-2 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-[0.16em] ${
             isDark ? "text-white/50" : "text-slate-500"
           }`}>
             Legend
           </p>
-          <ul className="space-y-1.5 text-[11.5px] font-medium">
-            <li className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#e65c45]" />
+          <ul className="space-y-1 sm:space-y-1.5 text-[10.5px] sm:text-[11.5px] font-medium">
+            <li className="flex items-center gap-1.5 sm:gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#e65c45] shrink-0" />
               <span>Active outage</span>
             </li>
-            <li className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#d9a637]" />
-              <span>Checking (Investigating)</span>
+            <li className="flex items-center gap-1.5 sm:gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#d9a637] shrink-0" />
+              <span>Checking</span>
             </li>
-            <li className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#438c6a]" />
+            <li className="flex items-center gap-1.5 sm:gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#438c6a] shrink-0" />
               <span>Restored</span>
             </li>
-            <li className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
+            <li className="flex items-center gap-1.5 sm:gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#3b82f6] shrink-0" />
               <span>Monitored grid</span>
             </li>
           </ul>

@@ -644,3 +644,28 @@ button { cursor: pointer; }
   }
 }
 
+/* Mobile Responsiveness & Touch Optimization */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (max-width: 640px) {
+  .gh-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .gh-cta {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 20px;
+    font-size: 12px;
+  }
+}
+
+

@@ -166,7 +166,48 @@ export function PreviewDashboardView({
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View: Stacked Observation Cards */}
+        <div className={`block sm:hidden divide-y ${isDark ? "divide-white/[0.06]" : "divide-slate-100"}`}>
+          {residentReports.map((r) => (
+            <div key={r.id} className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className={`font-semibold text-[14px] ${isDark ? "text-white" : "text-slate-900"}`}>
+                  {r.barangay}
+                </span>
+                {r.status === "checking" && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10.5px] font-semibold text-amber-500">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Checking
+                  </span>
+                )}
+                {r.status === "active" && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 border border-red-500/30 px-2 py-0.5 text-[10.5px] font-semibold text-red-500">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    Active
+                  </span>
+                )}
+                {r.status === "restored" && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-500">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Restored
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between text-[12px] opacity-70">
+                <span>{r.type}</span>
+                <span>{r.time}</span>
+              </div>
+              {r.notes && (
+                <p className={`text-[12px] italic ${isDark ? "text-white/60" : "text-slate-500"}`}>
+                  “{r.notes}”
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View: Full Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-[13.5px]">
             <thead className={`text-[11px] font-bold uppercase tracking-wider border-b ${
               isDark

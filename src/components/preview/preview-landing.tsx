@@ -70,11 +70,11 @@ export function PreviewLanding({ onGoToMap, onOpenReport, onGoToUpdates }: Previ
                 <p className="gh-body">
                   Grid Sight turns neighbour reports into a live picture of power across Surigao City’s 54 barangays — so families know what’s happening and crews know where to go.
                 </p>
-                <div className="gh-actions">
+                <div className="gh-actions w-full sm:w-auto flex-col sm:flex-row">
                   <button
                     type="button"
                     onClick={onOpenReport}
-                    className="gh-cta gh-cta-primary"
+                    className="gh-cta gh-cta-primary w-full sm:w-auto justify-center"
                   >
                     <span>Report an outage</span>
                     <ArrowRight className="gh-cta-arrow" size={16} />
@@ -82,7 +82,7 @@ export function PreviewLanding({ onGoToMap, onOpenReport, onGoToUpdates }: Previ
                   <button
                     type="button"
                     onClick={onGoToMap}
-                    className="gh-cta"
+                    className="gh-cta w-full sm:w-auto justify-center"
                   >
                     View outage map
                   </button>

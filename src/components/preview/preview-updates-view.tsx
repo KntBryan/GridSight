@@ -105,15 +105,15 @@ export function PreviewUpdatesView() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex overflow-x-auto scrollbar-none gap-2 pb-2 mb-6 sm:mb-8">
         {categories.map((c) => (
           <button
             key={c.value}
             type="button"
             onClick={() => setFilter(c.value)}
-            className={`rounded-full px-4 py-2 text-[13px] font-medium transition ${
+            className={`rounded-full px-3.5 sm:px-4 py-1.5 sm:py-2 text-[12.5px] sm:text-[13px] font-semibold whitespace-nowrap transition active:scale-95 ${
               filter === c.value
-                ? "bg-blue-600 text-white shadow-sm"
+                ? "bg-[#0d6edc] text-white shadow-sm"
                 : isDark
                 ? "bg-[#0b1a2e] text-white/60 hover:text-white border border-white/10"
                 : "bg-white text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm"
@@ -129,7 +129,7 @@ export function PreviewUpdatesView() {
         {filteredUpdates.map((item) => (
           <div
             key={item.id}
-            className={`rounded-2xl border p-6 transition ${
+            className={`rounded-2xl border p-4 sm:p-6 transition ${
               isDark
                 ? "border-white/10 bg-[#0b1a2e] hover:border-white/20 text-white"
                 : "border-slate-200 bg-white hover:border-slate-300 text-slate-900 shadow-sm"

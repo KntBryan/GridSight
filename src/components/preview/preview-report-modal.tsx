@@ -96,7 +96,7 @@ export function PreviewReportModal({
     >
       {/* Modal Panel */}
       <div
-        className={`relative w-full max-w-lg overflow-hidden rounded-2xl border shadow-2xl transition-colors duration-300 ${
+        className={`relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border shadow-2xl transition-colors duration-300 ${
           isDark
             ? "border-white/15 bg-[#0b1a2e] text-white"
             : "border-slate-200 bg-white text-slate-900"
@@ -104,8 +104,8 @@ export function PreviewReportModal({
       >
         {/* Modal Header */}
         <div
-          className={`flex items-center justify-between border-b px-6 py-4 ${
-            isDark ? "border-white/[0.08]" : "border-slate-100"
+          className={`sticky top-0 z-10 flex items-center justify-between border-b px-4 sm:px-6 py-3.5 sm:py-4 backdrop-blur-md ${
+            isDark ? "border-white/[0.08] bg-[#0b1a2e]/95" : "border-slate-100 bg-white/95"
           }`}
         >
           <div className="flex items-center gap-2.5">
@@ -157,7 +157,7 @@ export function PreviewReportModal({
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
             {/* Barangay Selection */}
             <div>
               <label
@@ -197,11 +197,11 @@ export function PreviewReportModal({
               >
                 What do you observe?
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setObservation("no_power")}
-                  className={`rounded-xl border p-2.5 text-center text-[12px] font-semibold transition ${
+                  className={`rounded-xl border p-2 sm:p-2.5 text-center text-[11px] sm:text-[12px] font-semibold transition ${
                     observation === "no_power"
                       ? "border-red-500 bg-red-500/15 text-red-400"
                       : isDark
@@ -214,7 +214,7 @@ export function PreviewReportModal({
                 <button
                   type="button"
                   onClick={() => setObservation("flickering")}
-                  className={`rounded-xl border p-2.5 text-center text-[12px] font-semibold transition ${
+                  className={`rounded-xl border p-2 sm:p-2.5 text-center text-[11px] sm:text-[12px] font-semibold transition ${
                     observation === "flickering"
                       ? "border-amber-500 bg-amber-500/15 text-amber-400"
                       : isDark
@@ -227,7 +227,7 @@ export function PreviewReportModal({
                 <button
                   type="button"
                   onClick={() => setObservation("restored")}
-                  className={`rounded-xl border p-2.5 text-center text-[12px] font-semibold transition ${
+                  className={`rounded-xl border p-2 sm:p-2.5 text-center text-[11px] sm:text-[12px] font-semibold transition ${
                     observation === "restored"
                       ? "border-emerald-500 bg-emerald-500/15 text-emerald-400"
                       : isDark
@@ -235,7 +235,7 @@ export function PreviewReportModal({
                       : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                   }`}
                 >
-                  Power Restored
+                  Restored
                 </button>
               </div>
             </div>
