@@ -6,7 +6,7 @@ export async function GET() {
     return NextResponse.json({ outages: [], demo: true });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const restoredSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase.from("outage_map")
     .select("id, area_id, area_name, city, province, area_type, psgc_code, status, report_count, latitude, longitude, first_reported_at, restored_at")

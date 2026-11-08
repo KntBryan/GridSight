@@ -7,7 +7,10 @@ export type QueuedReport = {
   longitude: number | null;
   photo: Blob | null;
   queuedAt: string;
-};
+  attempts?: number;
+  nextRetryAt?: number;
+  lastError?: string;
+}
 
 const databaseName = "gridsight-offline";
 const storeName = "reports";

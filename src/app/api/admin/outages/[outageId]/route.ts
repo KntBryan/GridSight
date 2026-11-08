@@ -5,12 +5,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const overrideSchema = z.object({ status: z.enum(["unconfirmed", "active", "restored"]) });
 
-export async function PATCH(request: NextRequest, { params }: { params: { outageId: string } }) {
-  const id = z.string().uuid().safeParse(params.outageId);
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ outageId: string }> }) {
+  const { outageId } = await params;
+  const id = z.string().uuid().safeParse(outageId);
   const body = overrideSchema.safeParse(await request.json().catch(() => null));
   if (!id.success || !body.success) return NextResponse.json({ error: "Invalid outage override." }, { status: 400 });
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();

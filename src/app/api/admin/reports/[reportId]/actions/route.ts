@@ -4,12 +4,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const actionSchema = z.object({ action: z.enum(["verified", "dismissed"]), reason: z.string().trim().max(300).optional() });
 
-export async function POST(request: NextRequest, { params }: { params: { reportId: string } }) {
-  const parsedId = z.string().uuid().safeParse(params.reportId);
+export async function POST(request: NextRequest, { params }: { params: Promise<{ reportId: string }> }) {
+  const { reportId } = await params;
+  const parsedId = z.string().uuid().safeParse(reportId);
   const body = actionSchema.safeParse(await request.json().catch(() => null));
   if (!parsedId.success || !body.success) return NextResponse.json({ error: "Invalid moderation action." }, { status: 400 });
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 

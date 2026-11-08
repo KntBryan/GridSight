@@ -56,6 +56,7 @@ type OutageMapProps = {
   userLocation?: [number, number] | null;
   selectedCoordinates?: [number, number] | null;
   selectedAreaName?: string;
+  dataAvailable?: boolean;
   onMapClick?: (coordinates: [number, number]) => void;
   onReportArea?: (barangayName: string, coordinates?: [number, number]) => void;
 };
@@ -154,6 +155,16 @@ export const POWER_COLORS = {
 
 function normalizeName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  })[character] ?? character);
 }
 
 export function resolveBarangayPower(
@@ -271,6 +282,7 @@ export default function OutageMap({
   userLocation,
   selectedCoordinates,
   selectedAreaName,
+  dataAvailable = true,
   onMapClick,
   onReportArea,
 }: OutageMapProps) {
@@ -278,22 +290,6 @@ export default function OutageMap({
   const [barangayGeoJson, setBarangayGeoJson] = useState<GeoJsonObject | null>(null);
 
   const targetCoords = selectedOutage?.coordinates ?? selectedCoordinates;
-
-  // Expose reporting handler for Leaflet popup buttons
-  useEffect(() => {
-    (window as unknown as { __gridSightReport?: (name: string, lat?: number, lng?: number) => void }).__gridSightReport = (
-      name: string,
-      lat?: number,
-      lng?: number
-    ) => {
-      if (onReportArea) {
-        onReportArea(name, lat && lng ? [lat, lng] : undefined);
-      }
-    };
-    return () => {
-      delete (window as unknown as { __gridSightReport?: unknown }).__gridSightReport;
-    };
-  }, [onReportArea]);
 
   useEffect(() => {
     fetch("/surigao_city_barangays.json")
@@ -327,9 +323,17 @@ export default function OutageMap({
       {/* Official 54 Surigao City Barangay Boundary Outlines & Live Status */}
       {barangayGeoJson && (
         <GeoJSON
-          key={`barangays-${outages.map((o) => `${o.id}:${o.status}`).join(",")}-${selectedId}-${selectedAreaName ?? ""}`}
+          key={`barangays-${dataAvailable}-${outages.map((o) => `${o.id}:${o.status}`).join(",")}-${selectedId}-${selectedAreaName ?? ""}`}
           data={barangayGeoJson}
           style={(feature) => {
+            if (!dataAvailable) {
+              return {
+                color: "#7b8580",
+                weight: 1,
+                fillColor: "#aab2ad",
+                fillOpacity: 0.12,
+              };
+            }
             const name = feature?.properties?.name ?? "";
             const info = getBarangayPowerInfo(name, outages);
             const isSelected =
@@ -352,14 +356,19 @@ export default function OutageMap({
           onEachFeature={(feature, layer: Layer) => {
             const name = feature.properties?.name;
             if (!name) return;
+            if (!dataAvailable) {
+              layer.bindTooltip("Outage data unavailable", { sticky: true, direction: "top", opacity: 0.95 });
+              return;
+            }
             const info = getBarangayPowerInfo(name, outages);
+            const safeName = escapeHtml(name);
 
             // Hover tooltip
             layer.bindTooltip(
               `<div style="font-family:system-ui,sans-serif;font-size:11px;font-weight:600;padding:3px 6px;">
-                <div style="font-weight:700;color:#0f172a;">Brgy. ${name}</div>
+                <div style="font-weight:700;color:#0f172a;">Brgy. ${safeName}</div>
                 <div style="font-size:10px;margin-top:2px;color:${info.stroke};font-weight:700;">
-                  ${info.badge}
+                  ${escapeHtml(info.badge)}
                 </div>
               </div>`,
               { sticky: true, direction: "top", opacity: 0.95 }
@@ -369,31 +378,37 @@ export default function OutageMap({
             const popupHtml = `
               <div style="min-width:220px;font-family:system-ui,-apple-system,sans-serif;padding:3px;color:#1e293b;">
                 <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">
-                  <strong style="font-size:13px;color:#0f172a;">Brgy. ${name}</strong>
+                  <strong style="font-size:13px;color:#0f172a;">Brgy. ${safeName}</strong>
                   <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${info.color}25;color:${info.stroke};border:1px solid ${info.stroke}40;text-transform:uppercase;">
-                    ${info.status}
+                    ${escapeHtml(info.status)}
                   </span>
                 </div>
                 <div style="font-size:10px;color:#64748b;margin-bottom:8px;font-weight:500;">
-                  📍 ${info.territory} · Surigao City
+                  📍 ${escapeHtml(info.territory)} · Surigao City
                 </div>
                 <div style="font-size:11px;line-height:1.5;margin-bottom:10px;background:#f8fafc;padding:6px 8px;border-radius:4px;border:1px solid #edf2f7;">
-                  <div><span style="color:#64748b;">Power status:</span> <strong style="color:${info.stroke};">${info.statusLabel}</strong></div>
-                  <div><span style="color:#64748b;">Grid condition:</span> <strong>${info.conditionText}</strong></div>
+                  <div><span style="color:#64748b;">Power status:</span> <strong style="color:${info.stroke};">${escapeHtml(info.statusLabel)}</strong></div>
+                  <div><span style="color:#64748b;">Grid condition:</span> <strong>${escapeHtml(info.conditionText)}</strong></div>
                   <div><span style="color:#64748b;">Community reports:</span> <strong>${info.reports} signal(s)</strong></div>
-                  <div><span style="color:#64748b;">Timeline:</span> <strong>${info.duration}</strong></div>
+                  <div><span style="color:#64748b;">Timeline:</span> <strong>${escapeHtml(info.duration)}</strong></div>
                   <div><span style="color:#64748b;">Coordinates:</span> <strong>${info.coordinates[0].toFixed(4)}° N, ${info.coordinates[1].toFixed(4)}° E</strong></div>
                 </div>
                 <button
                   type="button"
-                  onclick="if(window.__gridSightReport){window.__gridSightReport('${name}', ${info.coordinates[0]}, ${info.coordinates[1]});}"
+                  data-report-area
                   style="width:100%;cursor:pointer;background:#059669;color:#ffffff;border:none;border-radius:4px;padding:6px 8px;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;"
                 >
-                  ⚡ Report Power Issue for Brgy. ${name}
+                  ⚡ Report Power Issue for Brgy. ${safeName}
                 </button>
               </div>
             `;
             layer.bindPopup(popupHtml, { maxWidth: 280 });
+            layer.on("popupopen", (event) => {
+              const button = event.popup.getElement()?.querySelector<HTMLButtonElement>("[data-report-area]");
+              if (!button || button.dataset.handlerBound) return;
+              button.dataset.handlerBound = "true";
+              button.addEventListener("click", () => onReportArea?.(name, info.coordinates));
+            });
 
             // Layer click handler
             layer.on({

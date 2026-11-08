@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Area lookup is not configured." }, { status: 503 });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("find_barangay_at_location", {
     p_latitude: parsed.data.latitude,
     p_longitude: parsed.data.longitude,

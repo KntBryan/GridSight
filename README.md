@@ -1,6 +1,6 @@
 # GridSight
 
-GridSight is a community-powered outage map built with Next.js 14, TypeScript, Tailwind CSS, Supabase/PostgreSQL + PostGIS, and a small PWA service worker.
+GridSight is a community-powered outage map built with Next.js 15, TypeScript, Tailwind CSS, Supabase/PostgreSQL + PostGIS, and a small PWA service worker.
 
 ## Run locally
 
@@ -15,7 +15,7 @@ Prerequisites: Node.js 20+, npm, and a Supabase project with PostgreSQL/PostGIS.
    ```
 
 3. Open `http://localhost:3000`.
-4. Apply the migrations in numeric order: `0001_gridsight.sql`, `0002_surigaocity_barangays.sql`, then the 15 `0003`–`0017` `surigaocity_barangay_data_part_XX.sql` files. Run each file separately in the SQL Editor and wait for success before continuing.
+4. Apply the migrations in numeric order: `0001_gridsight.sql`, `0002_surigaocity_barangays.sql`, the 15 `0003`–`0017` `surigaocity_barangay_data_part_XX.sql` files, then `0018_push_delivery_queue.sql`. Run each file separately in the SQL Editor and wait for success before continuing.
 5. Enable Realtime for `public.outages` in the Supabase dashboard. The map reads the public-safe `outage_map` view; reports remain private to their author and admins.
 6. Configure email confirmation and password recovery URLs in Supabase Auth. Add `/login` to the allowed redirect URLs.
 
@@ -31,6 +31,7 @@ Deploy the functions with the Supabase CLI, then set function secrets:
 - `send-notifications`: `PUSH_CRON_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
 - Both functions also require Supabase's `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets.
 - Set the matching public key as `NEXT_PUBLIC_VAPID_PUBLIC_KEY` for the browser's push subscription flow.
+- Migration `0018_push_delivery_queue.sql` adds atomic notification claims and retries failed push delivery up to five times with backoff; apply it before deploying the updated `send-notifications` function.
 
 Schedule `cluster-reports` to run every minute (or invoke it from a database webhook on new report inserts for lower latency). Schedule `send-notifications` every minute. Both endpoints require a POST request with the matching `x-cron-secret` header. Generate VAPID keys before enabling web push.
 

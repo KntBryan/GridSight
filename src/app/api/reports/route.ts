@@ -15,6 +15,34 @@ const extensionByType: Record<string, string> = {
 const maxRequestBytes = 4.5 * 1024 * 1024;
 const maxPhotoBytes = 4 * 1024 * 1024;
 
+class RequestTooLargeError extends Error {}
+
+async function readBoundedBody(request: NextRequest, maxBytes: number) {
+  const reader = request.body?.getReader();
+  if (!reader) return new Uint8Array();
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel();
+      throw new RequestTooLargeError();
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
+
 function numberOrNull(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim() === "") return null;
   const parsed = Number(value);
@@ -44,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: "Sign in to submit a report." }, { status: 401 });
 
@@ -59,8 +87,12 @@ export async function POST(request: NextRequest) {
 
   let form: FormData;
   try {
-    form = await request.formData();
-  } catch {
+    const body = await readBoundedBody(request, maxRequestBytes);
+    form = await new Response(body, { headers: request.headers }).formData();
+  } catch (error) {
+    if (error instanceof RequestTooLargeError) {
+      return NextResponse.json({ error: "Report request is too large." }, { status: 413 });
+    }
     return NextResponse.json({ error: "Invalid report form data." }, { status: 400 });
   }
 
@@ -109,15 +141,23 @@ export async function POST(request: NextRequest) {
     }, { status: rateLimited ? 429 : 400 });
   }
 
+  let warning: string | undefined;
   if (photo instanceof File && photoBytes && reportId) {
     const path = `${user.id}/${reportId}.${extensionByType[photo.type]}`;
     const { error: uploadError } = await supabase.storage.from("report-photos").upload(path, photoBytes, {
       contentType: photo.type,
       upsert: false,
     });
-    if (!uploadError) {
+    if (uploadError) {
+      warning = "Your report was saved, but its photo could not be uploaded.";
+    } else {
       const { error: updateError } = await supabase.from("reports").update({ photo_path: path }).eq("id", reportId).eq("user_id", user.id);
-      if (updateError) await supabase.storage.from("report-photos").remove([path]);
+      if (updateError) {
+        const { error: cleanupError } = await supabase.storage.from("report-photos").remove([path]);
+        warning = cleanupError
+          ? "Your report was saved, but its photo could not be attached or cleaned up. Contact an administrator."
+          : "Your report was saved, but its photo could not be attached.";
+      }
     }
   }
 
@@ -130,14 +170,18 @@ export async function POST(request: NextRequest) {
     }).catch(() => undefined);
   }
 
-  return NextResponse.json({ reportId, message: "Report received." }, { status: 201 });
+  return NextResponse.json({
+    reportId,
+    message: "Report received.",
+    ...(warning ? { warning } : {}),
+  }, { status: 201 });
 }
 
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.json({ reports: [] });
   }
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to view report history." }, { status: 401 });
 

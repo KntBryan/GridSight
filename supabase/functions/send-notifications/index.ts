@@ -15,17 +15,26 @@ Deno.serve(async (request: Request) => {
 
   webpush.setVapidDetails(subject, publicKey, privateKey);
   const supabase = createClient(url, serviceKey, { auth: { persistSession: false } });
-  const { data: notifications, error } = await supabase.from("notifications")
-    .select("id, user_id, message, kind")
-    .is("delivered_at", null)
-    .order("created_at", { ascending: true })
-    .limit(100);
+  const { data: notifications, error } = await supabase.rpc("claim_push_notifications", { p_limit: 100 });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   let delivered = 0;
   for (const notification of notifications ?? []) {
-    const { data: subscriptions } = await supabase.from("push_subscriptions").select("id, subscription").eq("user_id", notification.user_id);
+    const { data: subscriptions, error: subscriptionError } = await supabase.from("push_subscriptions")
+      .select("id, subscription")
+      .eq("user_id", notification.user_id);
+    if (subscriptionError) {
+      const { error: finishError } = await supabase.rpc("finish_push_notification", {
+        p_notification_id: notification.id,
+        p_delivered: false,
+        p_error: "Push subscriptions could not be loaded.",
+      });
+      if (finishError) return Response.json({ error: "Could not update push delivery state." }, { status: 500 });
+      continue;
+    }
+
     let sent = false;
+    let deliveryError = subscriptions?.length ? "Push delivery failed." : "No active push subscriptions.";
     for (const item of subscriptions ?? []) {
       try {
         await webpush.sendNotification(item.subscription, JSON.stringify({
@@ -36,11 +45,19 @@ Deno.serve(async (request: Request) => {
         sent = true;
       } catch (error) {
         const statusCode = (error as { statusCode?: number }).statusCode;
-        if (statusCode === 404 || statusCode === 410) await supabase.from("push_subscriptions").delete().eq("id", item.id);
+        if (statusCode === 404 || statusCode === 410) {
+          const { error: deleteError } = await supabase.from("push_subscriptions").delete().eq("id", item.id);
+          if (deleteError) deliveryError = "An expired push subscription could not be removed.";
+        }
       }
     }
-    // Always mark notification as processed so it doesn't block future notifications in the queue
-    await supabase.from("notifications").update({ delivered_at: new Date().toISOString() }).eq("id", notification.id);
+
+    const { error: finishError } = await supabase.rpc("finish_push_notification", {
+      p_notification_id: notification.id,
+      p_delivered: sent,
+      p_error: sent ? null : deliveryError,
+    });
+    if (finishError) return Response.json({ error: "Could not update push delivery state." }, { status: 500 });
     if (sent) {
       delivered += 1;
     }

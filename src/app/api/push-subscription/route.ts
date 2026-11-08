@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   if (contentLength && Number(contentLength) > 16 * 1024) {
     return NextResponse.json({ error: "Push subscription request is too large." }, { status: 413 });
   }
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const endpoint = z.string().url().safeParse(new URL(request.url).searchParams.get("endpoint"));
   if (!endpoint.success) return NextResponse.json({ error: "Invalid push endpoint." }, { status: 400 });
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
   const { error } = await supabase.from("push_subscriptions").delete().eq("user_id", user.id).eq("endpoint", endpoint.data);

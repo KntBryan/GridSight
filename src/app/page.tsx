@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -28,13 +28,15 @@ import {
 } from "lucide-react";
 import type { MapOutage } from "@/components/outage-map";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { getQueuedReports, queueReport, removeQueuedReport } from "@/lib/offline-queue";
+import { getQueuedReports, queueReport, removeQueuedReport, type QueuedReport } from "@/lib/offline-queue";
 import { SURIGAO_CITY_BARANGAYS } from "@/lib/surigao-city-barangays";
 
 const OutageMap = dynamic(() => import("@/components/outage-map"), { ssr: false });
 
 type Status = MapOutage["status"];
 type ReportStatus = "no_power" | "flickering" | "restored";
+type MapDataState = "demo" | "loading" | "ready" | "error";
+const hasSupabaseConfig = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 const initialOutages: MapOutage[] = [];
 
@@ -250,6 +252,8 @@ function ReportDialog({
 export default function Home() {
   const router = useRouter();
   const [outages, setOutages] = useState(initialOutages);
+  const [mapDataState, setMapDataState] = useState<MapDataState>(hasSupabaseConfig ? "loading" : "demo");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [area, setArea] = useState("All barangays");
   const [statusFilter, setStatusFilter] = useState<"all" | Status>("all");
@@ -269,16 +273,133 @@ export default function Home() {
   const [userInitials, setUserInitials] = useState("GS");
   const [userLocation, setUserLocation] = useState<[number, number] | undefined>(undefined);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [queuedReports, setQueuedReports] = useState<QueuedReport[]>([]);
+  const syncingQueue = useRef(false);
+  const queueRetryTimer = useRef<number | null>(null);
+
+  const showToast = useCallback((message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 3500);
+  }, []);
+
+  const refreshQueuedReports = useCallback(async () => {
+    const queued = await getQueuedReports();
+    setQueuedReports(queued);
+    return queued;
+  }, []);
+
+  const syncQueuedReports = useCallback(async () => {
+    if (!navigator.onLine || syncingQueue.current) return;
+    syncingQueue.current = true;
+    try {
+      const queuedReports = await getQueuedReports();
+      for (const queued of queuedReports) {
+        if (queued.lastError && queued.nextRetryAt == null) continue;
+        if (queued.nextRetryAt != null && queued.nextRetryAt > Date.now()) continue;
+
+        const body = new FormData();
+        body.set("areaSlug", queued.areaSlug);
+        body.set("status", queued.status);
+        body.set("notes", queued.notes);
+        body.set("requestId", queued.requestId);
+        if (queued.latitude != null && queued.longitude != null) {
+          body.set("latitude", String(queued.latitude));
+          body.set("longitude", String(queued.longitude));
+        }
+        if (queued.photo) body.set("photo", queued.photo, "queued-photo");
+
+        try {
+          const response = await fetch("/api/reports", { method: "POST", body });
+          if (response.ok) {
+            await removeQueuedReport(queued.requestId);
+            const result = await response.json().catch(() => ({}));
+            if (result.warning) showToast(result.warning);
+            continue;
+          }
+
+          const result = await response.json().catch(() => ({}));
+          const attempts = (queued.attempts ?? 0) + 1;
+          const retryable = response.status === 429 || response.status >= 500;
+          const nextRetryAt = retryable && attempts < 5
+            ? Date.now() + Math.min(60 * 60 * 1000, 30_000 * 2 ** attempts)
+            : undefined;
+          await queueReport({
+            ...queued,
+            attempts,
+            nextRetryAt,
+            lastError: result.error || `Submission failed (HTTP ${response.status}).`,
+          });
+          if (response.status === 401 || retryable) break;
+        } catch {
+          const attempts = (queued.attempts ?? 0) + 1;
+          await queueReport({
+            ...queued,
+            attempts,
+            nextRetryAt: attempts < 5
+              ? Date.now() + Math.min(60 * 60 * 1000, 30_000 * 2 ** attempts)
+              : undefined,
+            lastError: "Connection failed while syncing this report.",
+          });
+          break;
+        }
+      }
+    } catch {
+      showToast("Offline reports could not be loaded from this device.");
+    } finally {
+      syncingQueue.current = false;
+      try {
+        const queued = await refreshQueuedReports();
+        if (queueRetryTimer.current != null) window.clearTimeout(queueRetryTimer.current);
+        const nextRetryAt = queued
+          .map((report) => report.nextRetryAt)
+          .filter((time): time is number => time != null && time > Date.now())
+          .sort((left, right) => left - right)[0];
+        if (nextRetryAt != null) {
+          queueRetryTimer.current = window.setTimeout(() => void syncQueuedReports(), nextRetryAt - Date.now());
+        }
+      } catch {
+        showToast("Offline report status could not be refreshed.");
+      }
+    }
+  }, [refreshQueuedReports, showToast]);
+
+  async function retryQueuedReport(requestId: string) {
+    try {
+      const queued = (await getQueuedReports()).find((report) => report.requestId === requestId);
+      if (!queued) return;
+      await queueReport({ ...queued, lastError: undefined, nextRetryAt: 0 });
+      await refreshQueuedReports();
+      await syncQueuedReports();
+    } catch {
+      showToast("This offline report could not be retried.");
+    }
+  }
+
+  async function discardQueuedReport(requestId: string) {
+    try {
+      await removeQueuedReport(requestId);
+      await refreshQueuedReports();
+    } catch {
+      showToast("This offline report could not be discarded.");
+    }
+  }
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return;
+    if (!hasSupabaseConfig) return;
     let cancelled = false;
 
     async function refreshOutages() {
       try {
         const response = await fetch("/api/outages", { cache: "no-store" });
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (!cancelled) setMapDataState("error");
+          return;
+        }
         const result = await response.json();
+        if (!Array.isArray(result.outages)) {
+          if (!cancelled) setMapDataState("error");
+          return;
+        }
         const rows = (result.outages ?? []) as Array<{ id: string; area_name: string; city: string; status: Status; report_count: number; latitude: number; longitude: number; first_reported_at: string; restored_at: string | null }>;
         const fresh: MapOutage[] = rows.filter((row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude)).map((row) => ({
           id: row.id,
@@ -292,39 +413,12 @@ export default function Home() {
         }));
         if (!cancelled) {
           setOutages(fresh);
+          setMapDataState("ready");
+          setLastUpdatedAt(new Date());
           if (fresh[0]) setSelectedId((current) => current || fresh[0].id);
         }
       } catch {
-        // Keep the last known map state when connectivity drops.
-      }
-    }
-
-    async function syncQueuedReports() {
-      if (!navigator.onLine) return;
-      try {
-        for (const queued of await getQueuedReports()) {
-          const body = new FormData();
-          body.set("areaSlug", queued.areaSlug);
-          body.set("status", queued.status);
-          body.set("notes", queued.notes);
-          body.set("requestId", queued.requestId);
-          if (queued.latitude != null && queued.longitude != null) {
-            body.set("latitude", String(queued.latitude));
-            body.set("longitude", String(queued.longitude));
-          }
-          if (queued.photo) body.set("photo", queued.photo, "queued-photo");
-          const response = await fetch("/api/reports", { method: "POST", body });
-          if (response.ok) {
-            await removeQueuedReport(queued.requestId);
-          } else if (response.status === 401) {
-            showToast("Sign in to sync your offline reports.");
-            break;
-          } else if (response.status === 400 || response.status === 413 || response.status === 422) {
-            await removeQueuedReport(queued.requestId);
-          }
-        }
-      } catch {
-        // Keep the queue for the next online event.
+        if (!cancelled) setMapDataState("error");
       }
     }
 
@@ -353,9 +447,10 @@ export default function Home() {
     return () => {
       cancelled = true;
       window.removeEventListener("online", syncQueuedReports);
+      if (queueRetryTimer.current != null) window.clearTimeout(queueRetryTimer.current);
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [syncQueuedReports]);
 
   const filteredOutages = useMemo(() => outages.filter((outage) =>
     (area === "All barangays" || outage.area === area) &&
@@ -377,19 +472,10 @@ export default function Home() {
     reports: 0, coordinates: [9.7878, 125.4916] as [number, number], reported: "No recent reports",
   };
   const activeCount = outages.filter((outage) => outage.status === "active").length;
-  const reportCount = outages.reduce((total, outage) => total + outage.reports, 0);
+  const clusterReportCount = outages.reduce((total, outage) => total + outage.reports, 0);
   const affectedBarangaysCount = new Set(
     outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area)
   ).size;
-  const gridConfidence =
-    affectedBarangaysCount === 0
-      ? 100
-      : Math.max(50, Math.round(100 - (affectedBarangaysCount / 54) * 100));
-
-  function showToast(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 3500);
-  }
 
   function handleLocateUser() {
     if (!navigator.geolocation) {
@@ -450,6 +536,7 @@ export default function Home() {
       };
       if (!navigator.onLine) {
         await queueReport(queued);
+        await refreshQueuedReports();
         showToast("You’re offline. Your report is queued to send when you reconnect.");
         return true;
       }
@@ -470,10 +557,11 @@ export default function Home() {
           showToast(result.error || "The report could not be submitted.");
           return false;
         }
-        showToast("Report received. Thanks for looking out for your area.");
+        showToast(result.warning || "Report received. Thanks for looking out for your area.");
         return true;
       } catch {
         await queueReport(queued);
+        await refreshQueuedReports();
         showToast("Connection lost. Your report is queued to send when you reconnect.");
         return true;
       }
@@ -496,6 +584,8 @@ export default function Home() {
     };
     setOutages((current) => [newOutage, ...current]);
     setSelectedId(newOutage.id);
+    setMapDataState("ready");
+    setLastUpdatedAt(new Date());
     showToast("Report received. Thanks for looking out for your area.");
     return true;
   }
@@ -519,7 +609,7 @@ export default function Home() {
         <div className="followed-area"><span className="area-dot dot-green" /><span>54 Barangays</span><span className="area-live">Active</span></div>
         <div className="followed-area"><span className="area-dot dot-yellow" /><span>PostGIS Boundaries</span></div>
         <div className="sidebar-bottom">
-          <div className="grid-health"><span className="health-icon"><Activity size={16} /></span><div><strong>Grid health</strong><small>Monitoring active</small></div><span className="health-status" /></div>
+          <div className="grid-health"><span className="health-icon"><Activity size={16} /></span><div><strong>Map data</strong><small>{mapDataState === "ready" ? "Recently updated" : mapDataState === "loading" ? "Loading" : mapDataState === "error" ? "Unavailable" : "Demo mode"}</small></div><span className={`health-status health-${mapDataState}`} /></div>
           <button className="profile-button" onClick={() => router.push(isSignedIn ? "/account" : "/login")}>
             <span className="avatar">{userInitials}</span><span className="profile-copy"><strong>{userName}</strong><small>{isSignedIn ? (isAdmin ? "Administrator" : "Community reporter") : "Sign in / Register"}</small></span><ChevronDown size={15} />
           </button>
@@ -531,7 +621,7 @@ export default function Home() {
           <button className="icon-button mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}><Menu size={20} /></button>
           <div className="breadcrumb"><span>GridSight</span><span className="crumb-slash">/</span><strong>{view}</strong></div>
           <div className="topbar-actions">
-            <div className="live-indicator"><span /> LIVE UPDATES</div>
+            <div className="live-indicator"><span className={`data-state-${mapDataState}`} />{mapDataState === "ready" ? "LIVE MAP DATA" : mapDataState === "loading" ? "LOADING MAP" : mapDataState === "error" ? "MAP DATA UNAVAILABLE" : "DEMO MODE"}</div>
             <button className="icon-button notification-trigger" aria-label="Notifications" onClick={() => { if (isSignedIn) { setNotificationsOpen(!notificationsOpen); setUnread(0); } else { router.push("/login"); } }}><Bell size={19} />{unread > 0 && <i />}</button>
             <button className="report-button" onClick={() => { setPendingCoordinates(undefined); setPendingAreaSlug(undefined); setReportOpen(true); }}><Plus size={17} /><span>Report outage</span></button>
           </div>
@@ -545,18 +635,34 @@ export default function Home() {
         <div className="page-content">
           <div className="page-heading">
             <div><span className="eyebrow">SURIGAO CITY · SURIGAO DEL NORTE · BARANGAY POWER WATCH</span><h1>Know before<br className="mobile-break" /> the lights go out.</h1><p>A clearer picture of what’s happening on your grid, right now.</p></div>
-            <div className="updated-stamp"><span className="pulse-dot" /><span>Updated just now</span><span className="stamp-divider" /><Clock3 size={14} /><span>Last {timeRange} hours</span></div>
+            <div className="updated-stamp"><span className={`pulse-dot data-state-${mapDataState}`} /><span>{mapDataState === "ready" && lastUpdatedAt ? `Updated ${lastUpdatedAt.toLocaleTimeString()}` : mapDataState === "loading" ? "Loading outage data" : mapDataState === "error" ? "Outage data unavailable" : "Local demo data"}</span><span className="stamp-divider" /><Clock3 size={14} /><span>Last {timeRange} hours</span></div>
           </div>
+
+          {queuedReports.length > 0 && <section className="queue-panel" aria-label="Offline reports">
+            <div className="queue-heading"><strong>{queuedReports.length} report{queuedReports.length === 1 ? "" : "s"} waiting to sync</strong><span>Stored on this device</span></div>
+            {queuedReports.map((report) => {
+              const areaName = SURIGAO_CITY_BARANGAYS.find((area) => area.slug === report.areaSlug)?.name ?? report.areaSlug;
+              return <article className="queue-item" key={report.requestId}>
+                <div><strong>{areaName}</strong><small>{report.lastError ?? "Will sync when connected"}</small></div>
+                <div className="queue-actions">
+                  {report.lastError && <button onClick={() => void retryQueuedReport(report.requestId)}>Retry</button>}
+                  <button onClick={() => void discardQueuedReport(report.requestId)}>Discard</button>
+                </div>
+              </article>;
+            })}
+          </section>}
 
           <div className="stats-strip">
             <div className="stat-item">
               <span className="stat-icon stat-red"><Zap size={17} /></span>
               <div>
-                <strong suppressHydrationWarning>{activeCount.toString().padStart(2, "0")}</strong>
+                <strong suppressHydrationWarning>{mapDataState === "ready" ? activeCount.toString().padStart(2, "0") : "—"}</strong>
                 <span>Active outages</span>
               </div>
-              {activeCount === 0 ? (
-                <small className="stat-trend positive">All clear</small>
+              {mapDataState !== "ready" ? (
+                <small className="stat-trend">{mapDataState === "error" ? "Unavailable" : "Awaiting data"}</small>
+              ) : activeCount === 0 ? (
+                <small className="stat-trend positive">None confirmed</small>
               ) : (
                 <small className="stat-trend negative">+{activeCount} active</small>
               )}
@@ -565,36 +671,36 @@ export default function Home() {
             <div className="stat-item">
               <span className="stat-icon stat-gold"><MapPin size={17} /></span>
               <div>
-                <strong suppressHydrationWarning>{affectedBarangaysCount.toString().padStart(2, "0")}</strong>
+                <strong suppressHydrationWarning>{mapDataState === "ready" ? affectedBarangaysCount.toString().padStart(2, "0") : "—"}</strong>
                 <span>Barangays affected</span>
               </div>
               <small className="stat-trend">
-                {affectedBarangaysCount === 0 ? "of 54 tracked" : `${affectedBarangaysCount} of 54 tracked`}
+                {mapDataState === "ready" ? `${affectedBarangaysCount} of 54 tracked` : "54 barangays in pilot"}
               </small>
             </div>
 
             <div className="stat-item">
               <span className="stat-icon stat-green"><Activity size={17} /></span>
               <div>
-                <strong suppressHydrationWarning>{reportCount}</strong>
-                <span>Reports today</span>
+                <strong suppressHydrationWarning>{mapDataState === "ready" ? clusterReportCount : "—"}</strong>
+                <span>Reports in clusters</span>
               </div>
-              {reportCount === 0 ? (
-                <small className="stat-trend positive">No disruptions</small>
+              {mapDataState !== "ready" ? (
+                <small className="stat-trend">{mapDataState === "error" ? "Unavailable" : "Awaiting data"}</small>
+              ) : clusterReportCount === 0 ? (
+                <small className="stat-trend positive">No recent clusters</small>
               ) : (
-                <small className="stat-trend positive">{reportCount} signal{reportCount === 1 ? "" : "s"}</small>
+                <small className="stat-trend">{clusterReportCount} signal{clusterReportCount === 1 ? "" : "s"}</small>
               )}
             </div>
 
             <div className="stat-item reliability-stat">
               <span className="stat-icon stat-blue"><ShieldCheck size={17} /></span>
               <div>
-                <strong suppressHydrationWarning>{gridConfidence}<span className="stat-percent">%</span></strong>
-                <span>Grid confidence</span>
+                <strong>{mapDataState === "ready" ? "Live" : mapDataState === "loading" ? "…" : mapDataState === "error" ? "Offline" : "Demo"}</strong>
+                <span>Data status</span>
               </div>
-              <small className={`stat-trend ${gridConfidence === 100 ? "positive" : ""}`}>
-                {gridConfidence === 100 ? "Optimal" : "High signal"}
-              </small>
+              <small className="stat-trend">{lastUpdatedAt && mapDataState === "ready" ? lastUpdatedAt.toLocaleTimeString() : "Community reports"}</small>
             </div>
           </div>
 
@@ -617,6 +723,7 @@ export default function Home() {
                   userLocation={userLocation}
                   selectedCoordinates={selectedBarangayCoords}
                   selectedAreaName={area !== "All barangays" ? area : undefined}
+                  dataAvailable={mapDataState === "ready"}
                   onMapClick={handleMapClick}
                   onReportArea={handleReportArea}
                 />
@@ -632,7 +739,7 @@ export default function Home() {
                 </button>
                 <div className="map-source">&copy; OpenStreetMap &copy; Humanitarian OSM</div>
               </div>
-              <div className="map-footer"><span><span className="pulse-dot" /> Showing <span suppressHydrationWarning>{filteredOutages.length}</span> outage clusters</span><span>Cluster radius <strong>500 m</strong> · Click map to drop pin</span><button onClick={() => { setStatusFilter("all"); setArea("All barangays"); setTimeRange("24"); setSearch(""); }}>Reset filters <X size={13} /></button></div>
+              <div className="map-footer"><span><span className={`pulse-dot data-state-${mapDataState}`} />{mapDataState === "ready" ? <>Showing <span suppressHydrationWarning>{filteredOutages.length}</span> outage clusters</> : mapDataState === "error" ? "Outage data unavailable" : mapDataState === "loading" ? "Loading outage data" : "Demo mode · no live outage data"}</span><span>Cluster radius <strong>500 m</strong> · Click map to drop pin</span><button onClick={() => { setStatusFilter("all"); setArea("All barangays"); setTimeRange("24"); setSearch(""); }}>Reset filters <X size={13} /></button></div>
             </section>
 
             <aside className="incident-panel" aria-label="Recent outage reports">
@@ -644,7 +751,7 @@ export default function Home() {
                   <span className="incident-title">{outage.area}</span>
                   <span className="incident-city"><MapPin size={13} />{outage.city}</span>
                   <span className="incident-meta"><span><Activity size={13} />{outage.reports} reports</span><span><Clock3 size={13} />{outage.reported}</span></span>
-                  <span className="confidence"><span className="confidence-track"><i style={{ width: `${Math.min(25 + outage.reports * 4, 96)}%` }} /></span><small>{Math.min(25 + outage.reports * 4, 96)}% confidence</small></span>
+                  <span className="confidence"><small>{outage.reports} community report{outage.reports === 1 ? "" : "s"} · not utility-confirmed</small></span>
                 </button>)}
                 {filteredOutages.length === 0 && <div className="empty-list">No matching outages. Try a different area or status.</div>}
               </div>
@@ -655,30 +762,22 @@ export default function Home() {
           {outages.length === 0 ? (
             <section className="detail-ribbon">
               <div className="detail-marker">
-                <span className="detail-marker-dot" style={{ background: "#22c55e", color: "white" }}>
+                <span className="detail-marker-dot" style={{ background: mapDataState === "ready" ? "#22c55e" : "#7b8580", color: "white" }}>
                   <Zap size={16} fill="currentColor" />
                 </span>
               </div>
               <div className="detail-copy">
                 <span className="panel-kicker">SURIGAO CITY · 54 BARANGAYS MONITORED</span>
                 <h3>
-                  Grid Normal{" "}
-                  <span className="inline-status" style={{ background: "#dcfce7", color: "#15803d", borderColor: "#86efac" }}>
-                    Active
+                  {mapDataState === "ready" ? "No active outage reports" : mapDataState === "loading" ? "Loading outage data" : mapDataState === "error" ? "Outage data unavailable" : "Demo mode"}
+                  <span className="inline-status" style={{ background: mapDataState === "ready" ? "#dcfce7" : "#eef0ed", color: mapDataState === "ready" ? "#15803d" : "#59645e", borderColor: mapDataState === "ready" ? "#86efac" : "#cbd1cc" }}>
+                    {mapDataState === "ready" ? "Community status" : mapDataState === "error" ? "Unavailable" : mapDataState === "loading" ? "Loading" : "Local only"}
                   </span>
                 </h3>
                 <p>
-                  Zero active power outages reported across all 54 barangays.{" "}
+                  {mapDataState === "ready" ? "No active outage clusters are currently reported; this is not confirmation from the utility." : mapDataState === "error" ? "The latest map update failed. Any previously loaded outage data may be stale." : mapDataState === "loading" ? "Waiting for the latest outage data." : "Live outage data is not connected in this demo."}{" "}
                   <button onClick={() => router.push(isSignedIn ? "/reports" : "/login")}>View report feed</button>
                 </p>
-              </div>
-              <div className="detail-metric">
-                <strong suppressHydrationWarning>54</strong>
-                <span>barangays online</span>
-              </div>
-              <div className="detail-metric">
-                <strong>100%</strong>
-                <span>normal supply</span>
               </div>
               <button
                 className="detail-report"
@@ -712,12 +811,12 @@ export default function Home() {
                 </p>
               </div>
               <div className="detail-metric"><strong suppressHydrationWarning>{selected.reports}</strong><span>community reports</span></div>
-              <div className="detail-metric"><strong>{selected.status === "restored" ? "38m" : "12m"}</strong><span>{selected.status === "restored" ? "time to restore" : "since first report"}</span></div>
+              <div className="detail-metric"><strong>{selected.reported}</strong><span>report activity</span></div>
               <button className="detail-report" onClick={() => { handleReportArea(selected.area, selected.coordinates); }}><Plus size={15} /> Add report</button>
             </section>
           )}
 
-          <footer className="page-footer"><span>GridSight combines community reports to reveal local power conditions.</span><button onClick={() => showToast("Status estimates are based on recent community reports.")}><CircleHelp size={14} /> How confidence works</button><span className="footer-version">GRID SIGNAL v0.1</span></footer>
+          <footer className="page-footer"><span>GridSight shares community reports; status is not utility-confirmed.</span><button onClick={() => showToast("Outage clusters summarize community reports and should not be treated as official utility confirmation.")}><CircleHelp size={14} /> How to read this map</button><span className="footer-version">GRID SIGNAL v0.1</span></footer>
         </div>
       </section>
       {reportOpen && (
