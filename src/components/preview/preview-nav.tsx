@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Zap, MapPin, ExternalLink } from "lucide-react";
+import { Zap, MapPin } from "lucide-react";
 import { ThemeToggle, useTheme } from "./preview-theme";
 
 export type PreviewTab = "home" | "map" | "updates" | "dashboard";
@@ -18,43 +17,6 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
 
   return (
     <>
-      {/* Top Preview Status Bar */}
-      <div
-        className={`px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-3 transition-colors ${
-          isDark
-            ? "bg-[#0b1a2e] border-b border-white/10 text-white/80"
-            : "bg-slate-100 border-b border-slate-200 text-slate-700 shadow-sm"
-        }`}
-      >
-        <div className="flex items-center gap-2 font-mono">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
-            BASE44 UI PREVIEW MODE
-          </span>
-          <span className={isDark ? "text-white/40" : "text-slate-400"}>|</span>
-          <span className={isDark ? "text-white/60" : "text-slate-600"}>
-            Isolated route at <code className="text-blue-500 font-semibold">/preview</code>
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded font-medium transition text-[11px] ${
-              isDark
-                ? "bg-white/10 hover:bg-white/20 text-white"
-                : "bg-slate-200 hover:bg-slate-300 text-slate-800"
-            }`}
-          >
-            <span>Exit Preview & View Current UI</span>
-            <ExternalLink size={12} />
-          </Link>
-        </div>
-      </div>
-
       {/* Main Base44 Header */}
       <header
         className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-colors ${
