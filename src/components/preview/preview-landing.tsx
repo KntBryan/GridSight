@@ -237,7 +237,7 @@ export function PreviewLanding({ onGoToMap, onOpenReport, onGoToUpdates }: Previ
       </section>
 
       {/* Dark Civic Footer */}
-      <footer className="border-t border-white/10 bg-[#040c17] py-14 text-white/60">
+      <footer className={`border-t bg-[#040c17] py-14 ${isDark ? "border-white/10 text-white/60" : "border-slate-700 text-slate-300"}`}>
         <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
           <div className="flex flex-col gap-10 md:flex-row md:justify-between">
             <div className="max-w-sm">
@@ -245,30 +245,30 @@ export function PreviewLanding({ onGoToMap, onOpenReport, onGoToUpdates }: Previ
                 <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#0d6edc] text-white">
                   <Zap size={16} strokeWidth={2.4} fill="currentColor" />
                 </div>
-                <span className="font-heading text-[17px] font-bold text-white">GridSight</span>
+                <span className={`font-heading text-[17px] font-bold ${isDark ? "text-white" : "text-slate-100"}`}>GridSight</span>
               </div>
-              <p className="mt-4 text-[13px] leading-relaxed text-white/45">
+              <p className={`mt-4 text-[13px] leading-relaxed ${isDark ? "text-white/45" : "text-slate-400"}`}>
                 A community-powered power outage map piloted in Surigao City, Surigao del Norte. Reports are observations from residents; status changes are verified by city staff.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-10 text-[13.5px] sm:gap-16">
               <div>
-                <h4 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">
+                <h4 className={`mb-3 text-[11px] font-bold uppercase tracking-[0.18em] ${isDark ? "text-white/35" : "text-slate-400"}`}>
                   Navigation
                 </h4>
-                <ul className="space-y-2.5 text-white/60">
-                  <li><button type="button" onClick={onGoToMap} className="hover:text-white transition">Outage map</button></li>
-                  <li><button type="button" onClick={onOpenReport} className="hover:text-white transition">Report an outage</button></li>
-                  <li><button type="button" onClick={onGoToUpdates} className="hover:text-white transition">Community updates</button></li>
+                <ul className={`space-y-2.5 ${isDark ? "text-white/60" : "text-slate-300"}`}>
+                  <li><button type="button" onClick={onGoToMap} className={`hover:${isDark ? "text-white" : "text-slate-100"} transition`}>Outage map</button></li>
+                  <li><button type="button" onClick={onOpenReport} className={`hover:${isDark ? "text-white" : "text-slate-100"} transition`}>Report an outage</button></li>
+                  <li><button type="button" onClick={onGoToUpdates} className={`hover:${isDark ? "text-white" : "text-slate-100"} transition`}>Community updates</button></li>
                 </ul>
               </div>
 
               <div>
-                <h4 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">
+                <h4 className={`mb-3 text-[11px] font-bold uppercase tracking-[0.18em] ${isDark ? "text-white/35" : "text-slate-400"}`}>
                   Pilot Coverage
                 </h4>
-                <ul className="space-y-2.5 text-white/60">
+                <ul className={`space-y-2.5 ${isDark ? "text-white/60" : "text-slate-300"}`}>
                   <li>Surigao City Mainland</li>
                   <li>Hikdop Island</li>
                   <li>Nonoc Island</li>
@@ -278,7 +278,7 @@ export function PreviewLanding({ onGoToMap, onOpenReport, onGoToUpdates }: Previ
             </div>
           </div>
 
-          <div className="mt-12 flex flex-col gap-2 border-t border-white/10 pt-6 text-[12px] text-white/35 sm:flex-row sm:items-center sm:justify-between">
+          <div className={`mt-12 flex flex-col gap-2 border-t pt-6 text-[12px] sm:flex-row sm:items-center sm:justify-between ${isDark ? "border-white/10 text-white/35" : "border-slate-700 text-slate-500"}`}>
             <p>© {new Date().getFullYear()} Grid Sight · Surigao City pilot (54 Barangays)</p>
             <p>Barangay boundaries: PSA / NAMRIA COD-AB. Not an official emergency channel.</p>
           </div>

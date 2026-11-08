@@ -373,7 +373,7 @@ function ReportsPageInner() {
                   >
                     <div className="space-y-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-heading text-[15px] font-bold text-white">
+                        <span className={`font-heading text-[15px] font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
                           {area?.name || "Surigao City Area"}
                         </span>
                         {observationPill(report.status)}
