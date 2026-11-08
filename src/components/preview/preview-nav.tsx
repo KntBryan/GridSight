@@ -441,17 +441,28 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
                 )}
               </div>
             ) : (
-              <Link
-                href="/login"
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition ${
-                  isDark
-                    ? "border-white/15 bg-white/[0.08] text-white/90 hover:bg-white/15 hover:text-white"
-                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-sm"
-                }`}
-              >
-                <LogIn size={14} />
-                <span>Sign In</span>
-              </Link>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Link
+                  href="/login"
+                  className={`rounded-full px-3 sm:px-4 py-1.5 text-[13px] font-semibold transition-colors ${
+                    isDark
+                      ? "text-white/80 hover:text-white"
+                      : "text-slate-700 hover:text-slate-900"
+                  }`}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className={`rounded-full px-3.5 sm:px-4 py-1.5 text-[13px] font-semibold transition shadow-sm ${
+                    isDark
+                      ? "bg-white text-[#061120] hover:bg-white/90"
+                      : "bg-slate-900 text-white hover:bg-slate-800"
+                  }`}
+                >
+                  Sign up
+                </Link>
+              </div>
             )}
           </div>
         </div>
@@ -556,15 +567,24 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
               )}
             </>
           ) : (
-            <Link
-              href="/login"
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1 ${
-                isDark ? "text-blue-400" : "text-blue-600"
-              }`}
-            >
-              <LogIn size={12} />
-              <span>Sign In</span>
-            </Link>
+            <>
+              <Link
+                href="/login"
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex items-center gap-1 ${
+                  isDark ? "text-white/70 hover:text-white" : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <span>Login</span>
+              </Link>
+              <Link
+                href="/register"
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1 ${
+                  isDark ? "bg-white text-[#061120]" : "bg-slate-900 text-white"
+                }`}
+              >
+                <span>Sign up</span>
+              </Link>
+            </>
           )}
         </div>
       </header>
