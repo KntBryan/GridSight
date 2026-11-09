@@ -24,6 +24,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AreaAnalytics[]>([]);
   const [authorized, setAuthorized] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("pending");
   const [areaFilter, setAreaFilter] = useState("all");
@@ -41,8 +42,17 @@ export default function AdminPage() {
     const supabase = createSupabaseBrowserClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError("Sign in with an administrator account to continue."); setLoading(false); return; }
+    if (!user.email_confirmed_at) { setError("Confirm your account email before using administrator features."); setLoading(false); return; }
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
     if (profile?.role !== "admin") { setError("This dashboard is restricted to GridSight administrators."); setLoading(false); return; }
+    const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assuranceError) { setError("Your MFA status could not be verified."); setLoading(false); return; }
+    if (assurance.currentLevel !== "aal2") {
+      setMfaRequired(true);
+      setError("Verify an MFA challenge before using administrator features.");
+      setLoading(false);
+      return;
+    }
     setAuthorized(true);
     const query = supabase.from("reports").select("id, status, verification_status, notes, created_at, areas(name, city)").order("created_at", { ascending: false }).limit(250);
     const { data, error: queryError } = filter === "pending" ? await query.eq("verification_status", "pending") : await query;
@@ -110,13 +120,13 @@ export default function AdminPage() {
 
   return (
     <main className="admin-page">
-      <header className="admin-topbar"><Link href="/" className="admin-back"><ArrowLeft size={16} /> Live map</Link><span className="admin-brand"><span><ShieldCheck size={17} /></span> GRID SIGHT <b>/</b> OPERATIONS</span><span className="admin-role">ADMIN CONSOLE</span></header>
+      <header className="admin-topbar"><Link href="/" className="admin-back"><ArrowLeft size={16} /> Live map</Link><span className="admin-brand"><span><ShieldCheck size={17} /></span> GRID SIGHT <b>/</b> OPERATIONS</span><Link href="/admin/accounts" className="admin-role">ADMIN ACCOUNTS</Link></header>
       <div className="admin-content">
         <div className="admin-heading"><div><span className="eyebrow">REPORT REVIEW · SURIGAO CITY · BARANGAY PILOT</span><h1>Signal desk</h1><p>Review community observations and keep the outage picture credible.</p></div><div className="admin-stat"><span>INCOMING REPORTS</span><strong suppressHydrationWarning>{reports.length.toString().padStart(2, "0")}</strong></div></div>
         <div className="admin-summary"><div><span className="summary-icon red"><CircleAlert size={17} /></span><span><strong suppressHydrationWarning>{reports.filter((report) => report.verification_status === "pending").length}</strong><small>Awaiting review</small></span></div><div><span className="summary-icon green"><Check size={17} /></span><span><strong suppressHydrationWarning>{outages.filter((outage) => outage.status === "active").length}</strong><small>Active outages</small></span></div><div><span className="summary-icon gray"><ShieldCheck size={17} /></span><span><strong suppressHydrationWarning>{reportsToday}</strong><small>Reports today</small></span></div><div><span className="summary-icon gray"><MapPin size={17} /></span><span><strong suppressHydrationWarning>{new Set(outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area_name)).size}</strong><small>Barangays affected</small></span></div></div>
         <section className="review-panel"><div className="review-toolbar"><div><span className="panel-kicker">COMMUNITY FEED</span><h2>Incoming reports</h2></div><div className="review-filters"><label className="review-filter">Review <select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="pending">Needs review</option><option value="all">All reports</option></select></label><label className="review-filter">Barangay <select value={areaFilter} onChange={(event) => setAreaFilter(event.target.value)}><option value="all">All barangays</option>{Array.from(new Set(reports.flatMap((report) => report.areas?.map((area) => area.name) ?? []).filter((name): name is string => Boolean(name)))).map((name) => <option key={name}>{name}</option>)}</select></label><label className="review-filter">Status <select value={reportStatusFilter} onChange={(event) => setReportStatusFilter(event.target.value)}><option value="all">All</option><option value="no_power">No power</option><option value="flickering">Flickering</option><option value="restored">Restored</option></select></label><label className="review-filter">From <input aria-label="Filter reports from date" type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} /></label><label className="review-filter">To <input aria-label="Filter reports through date" type="date" value={toDateFilter} onChange={(event) => setToDateFilter(event.target.value)} /></label></div></div>
         <div className="review-export-row"><div><a className="csv-export" href={`/api/admin/export${dateFilter || toDateFilter ? `?${dateFilter ? `from=${encodeURIComponent(dateFilter)}` : ""}${dateFilter && toDateFilter ? "&" : ""}${toDateFilter ? `to=${encodeURIComponent(toDateFilter)}` : ""}` : ""}`}><Download size={14} /> Export CSV</a></div></div>
-          {error && <div className="admin-error" role="alert">{error}{!authorized && <Link href="/login">Sign in</Link>}</div>}
+          {error && <div className="admin-error" role="alert">{error}{mfaRequired ? <Link href="/admin/accounts">Set up MFA</Link> : !authorized && <Link href="/login">Sign in</Link>}</div>}
           {loading ? <div className="admin-loading"><LoaderCircle size={18} className="loading-icon" /> Loading reports</div> : authorized && <div className="table-scroll"><table className="review-table"><thead><tr><th>AREA / SUBMITTED</th><th>OBSERVATION</th><th>NOTE</th><th>REVIEW</th><th>ACTION</th></tr></thead><tbody>
             {visibleReports.map((report) => {
               const area = report.areas?.[0];

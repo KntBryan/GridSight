@@ -409,6 +409,18 @@ button { cursor: pointer; }
 .no-reports { padding: 35px !important; color: #859189 !important; text-align: center; }
 .admin-error { padding: 11px 15px; border-bottom: 1px solid #f0e1dd; background: #fff6f3; color: #ad5144; font-size: 10px; }
 .admin-error a { margin-left: 7px; color: #477654; font-weight: 700; }
+.admin-success { padding: 11px 15px; border-bottom: 1px solid #d6e8d8; background: #f0f8ef; color: #3e7652; font-size: 10px; }
+.account-invite-form { display: flex; align-items: center; gap: 10px; padding: 16px; }
+.account-invite-form label, .account-mfa-form label { color: #56665e; font-size: 10px; font-weight: 700; }
+.account-invite-form input, .account-mfa-form input { min-width: 0; height: 36px; border: 1px solid #dce3db; border-radius: 5px; background: white; padding: 0 10px; color: #34443b; font-size: 11px; }
+.account-invite-form input { flex: 1; }
+.account-primary-button, .account-row-button, .account-mfa-form button { border: 0; border-radius: 5px; background: #477b59; padding: 10px 14px; color: white; font-size: 10px; font-weight: 700; cursor: pointer; }
+.account-row-button { padding: 7px 10px; }
+.account-primary-button:disabled, .account-row-button:disabled, .account-mfa-form button:disabled { opacity: .5; cursor: not-allowed; }
+.account-mfa-form { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; color: #56665e; font-size: 11px; }
+.account-mfa-form img { border: 1px solid #e1e7df; background: white; padding: 8px; }
+.account-mfa-form label { display: grid; gap: 6px; }
+.account-mfa-form code { overflow-wrap: anywhere; }
 .admin-loading { min-height: 150px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #77847d; font-size: 10px; }
 .admin-footnote { margin: 13px 0; display: flex; align-items: center; gap: 6px; color: #7d8a82; font-size: 9px; }
 
@@ -424,6 +436,7 @@ button { cursor: pointer; }
   .auth-form-wrap { padding: 32px 0 0; }
   .admin-topbar { padding: 0 12px; }
   .admin-role { font-size: 7px; }
+  .account-invite-form { align-items: stretch; flex-direction: column; }
   .admin-brand { gap: 5px; font-size: 7px; }
   .admin-content { width: calc(100% - 24px); padding-top: 24px; }
   .admin-heading h1 { font-size: 27px; }
@@ -667,5 +680,4 @@ button { cursor: pointer; }
     font-size: 12px;
   }
 }
-
 
