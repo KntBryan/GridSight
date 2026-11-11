@@ -1,10 +1,10 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, LoaderCircle, ShieldCheck } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { AdminHeader } from "@/components/admin/admin-header";
 
 type Account = { id: string; name: string; email: string; role: "user" | "admin"; created_at: string };
 type AuditEntry = { id: number; actor_id: string | null; actor_label: string | null; target_id: string | null; action: string; created_at: string };
@@ -134,11 +134,7 @@ export default function AdminAccountsPage() {
 
   return (
     <main className="admin-page">
-      <header className="admin-topbar">
-        <Link href="/admin" className="admin-back"><ArrowLeft size={16} /> Operations</Link>
-        <span className="admin-brand"><span><ShieldCheck size={17} /></span> GRID SIGHT <b>/</b> ADMIN ACCOUNTS</span>
-        <span className="admin-role">SECURE MANAGEMENT</span>
-      </header>
+      <AdminHeader activePage="accounts" />
       <div className="admin-content">
         <div className="admin-heading"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Administrator accounts</h1><p>Invite staff, manage confirmed accounts, and review role-change history.</p></div></div>
         {error && <div className="admin-error" role="alert">{error}</div>}

@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, CircleAlert, Download, LoaderCircle, MapPin, ShieldCheck, X } from "lucide-react";
+import { Check, CircleAlert, Download, LoaderCircle, MapPin, ShieldCheck, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { AdminHeader } from "@/components/admin/admin-header";
 
 type ReviewReport = {
   id: string;
@@ -120,7 +121,7 @@ export default function AdminPage() {
 
   return (
     <main className="admin-page">
-      <header className="admin-topbar"><Link href="/" className="admin-back"><ArrowLeft size={16} /> Live map</Link><span className="admin-brand"><span><ShieldCheck size={17} /></span> GRID SIGHT <b>/</b> OPERATIONS</span><Link href="/admin/accounts" className="admin-role">ADMIN ACCOUNTS</Link></header>
+      <AdminHeader activePage="desk" />
       <div className="admin-content">
         <div className="admin-heading"><div><span className="eyebrow">REPORT REVIEW · SURIGAO CITY · BARANGAY PILOT</span><h1>Signal desk</h1><p>Review community observations and keep the outage picture credible.</p></div><div className="admin-stat"><span>INCOMING REPORTS</span><strong suppressHydrationWarning>{reports.length.toString().padStart(2, "0")}</strong></div></div>
         <div className="admin-summary"><div><span className="summary-icon red"><CircleAlert size={17} /></span><span><strong suppressHydrationWarning>{reports.filter((report) => report.verification_status === "pending").length}</strong><small>Awaiting review</small></span></div><div><span className="summary-icon green"><Check size={17} /></span><span><strong suppressHydrationWarning>{outages.filter((outage) => outage.status === "active").length}</strong><small>Active outages</small></span></div><div><span className="summary-icon gray"><ShieldCheck size={17} /></span><span><strong suppressHydrationWarning>{reportsToday}</strong><small>Reports today</small></span></div><div><span className="summary-icon gray"><MapPin size={17} /></span><span><strong suppressHydrationWarning>{new Set(outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area_name)).size}</strong><small>Barangays affected</small></span></div></div>
