@@ -342,7 +342,11 @@ function ReportsPageInner() {
             </div>
           ) : filteredReports.length === 0 ? (
             <div className="p-14 text-center">
-              <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-white/[0.04] text-white/40">
+              <div
+                className={`mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl ${
+                  isDark ? "bg-white/[0.04] text-white/40" : "bg-slate-100 text-slate-500"
+                }`}
+              >
                 <FileClock size={26} />
               </div>
               <h3 className="font-heading text-[17px] font-bold">No reports found</h3>

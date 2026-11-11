@@ -537,8 +537,6 @@ button { cursor: pointer; }
 
 /* Base44 Design System & Preview Tokens */
 .preview-root {
-  background-color: #061120;
-  color: #f0f6fc;
   font-family: var(--font-body), sans-serif;
   min-height: 100vh;
 }
@@ -680,4 +678,3 @@ button { cursor: pointer; }
     font-size: 12px;
   }
 }
-

@@ -178,7 +178,7 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
             : "border-slate-200 bg-white/95 text-slate-900 shadow-sm"
         }`}
       >
-        <div className="mx-auto flex h-[64px] sm:h-[70px] w-full max-w-[1240px] items-center justify-between gap-3 px-4 sm:px-8">
+        <div className="mx-auto flex h-[64px] sm:h-[70px] w-full max-w-[1240px] items-center justify-between gap-3 px-4 sm:px-8 max-[380px]:gap-1 max-[380px]:px-2">
           {/* Logo */}
           <button
             type="button"
@@ -207,7 +207,7 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
           </button>
 
           {/* Primary Nav Links (Desktop) */}
-          <nav className="hidden items-center gap-6 lg:gap-7 md:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-6 lg:gap-7 xl:flex" aria-label="Primary">
             <button
               type="button"
               onClick={() => handleTabSelect("home")}
@@ -271,7 +271,7 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
           </nav>
 
           {/* Right Action CTAs (Desktop) */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden xl:flex items-center gap-3">
             <ThemeToggle />
 
             {/* Notifications Button (if signed in) */}
@@ -470,7 +470,7 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
           </div>
 
           {/* Right Action Area (Mobile) */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex xl:hidden items-center gap-2 max-[380px]:gap-1">
             <ThemeToggle />
 
             {/* Compact Report Button */}
@@ -478,10 +478,10 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
               type="button"
               onClick={onOpenReport}
               aria-label="Report outage"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#0d6edc] px-3 py-1.5 text-xs font-semibold text-white shadow transition active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#0d6edc] px-3 py-1.5 text-xs font-semibold text-white shadow transition active:scale-95 max-[380px]:h-8 max-[380px]:w-8 max-[380px]:justify-center max-[380px]:px-0"
             >
               <MapPin size={13} />
-              <span>Report</span>
+              <span className="max-[380px]:hidden">Report</span>
             </button>
 
             {/* Notification Bell (mobile if signed in) */}
@@ -489,7 +489,7 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
               <Link
                 href="/notifications"
                 aria-label="Notifications"
-                className={`relative grid h-8 w-8 place-items-center rounded-lg border transition ${
+                className={`relative grid h-8 w-8 place-items-center rounded-lg border transition max-[380px]:hidden ${
                   isDark
                     ? "border-white/15 bg-white/[0.06] text-white"
                     : "border-slate-300 bg-white text-slate-800"
@@ -524,7 +524,7 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
         {/* Mobile Slide-down Drawer Menu */}
         {mobileMenuOpen && (
           <div
-            className={`md:hidden border-t px-5 py-5 transition-colors ${
+            className={`xl:hidden border-t px-5 py-5 transition-colors ${
               isDark ? "border-white/10 bg-[#061120]" : "border-slate-200 bg-white shadow-xl"
             }`}
           >
@@ -692,7 +692,7 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
 
         {/* Horizontal Quick-Switch Tab Strip (Mobile) */}
         <div
-          className={`flex overflow-x-auto border-t px-3 py-2 md:hidden gap-1.5 transition-colors scrollbar-none items-center ${
+          className={`flex overflow-x-auto border-t px-3 py-2 xl:hidden gap-1.5 transition-colors scrollbar-none items-center ${
             isDark
               ? "border-white/[0.08] bg-[#061120]/95"
               : "border-slate-200 bg-white/95"
