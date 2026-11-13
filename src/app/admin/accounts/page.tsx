@@ -8,7 +8,7 @@ import { AdminHeader } from "@/components/admin/admin-header";
 
 type Account = { id: string; name: string; email: string; role: "user" | "admin"; created_at: string };
 type AuditEntry = { id: number; actor_id: string | null; actor_label: string | null; target_id: string | null; action: string; created_at: string };
-type TotpSetup = { factorId: string; qrCode?: string; secret?: string };
+type TotpSetup = { step: "verify-existing" | "enroll"; factorId: string; qrCode?: string; secret?: string };
 
 export default function AdminAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -84,7 +84,7 @@ export default function AdminAccountsPage() {
       if (factorsError) throw factorsError;
       const verifiedFactor = factors.totp.find((factor) => factor.status === "verified");
       if (verifiedFactor) {
-        setSetup({ factorId: verifiedFactor.id });
+        setSetup({ step: "verify-existing", factorId: verifiedFactor.id });
         return;
       }
 
@@ -96,7 +96,7 @@ export default function AdminAccountsPage() {
       }
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "GridSight admin" });
       if (enrollError) throw enrollError;
-      setSetup({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
+      setSetup({ step: "enroll", factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "MFA enrollment could not be started.");
     } finally {
@@ -119,12 +119,34 @@ export default function AdminAccountsPage() {
         code: code.trim(),
       });
       if (verifyError) throw verifyError;
+
+      if (setup.step === "verify-existing") {
+        const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+        if (factorsError) throw factorsError;
+        for (const factor of factors.totp) {
+          if (factor.status !== "verified") {
+            const { error: removeError } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+            if (removeError) throw removeError;
+          }
+        }
+        let friendlyName = "GridSight admin phone";
+        for (let suffix = 2; factors.totp.some((factor) => factor.friendly_name === friendlyName); suffix++) {
+          friendlyName = `GridSight admin phone ${suffix}`;
+        }
+        const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName });
+        if (enrollError) throw enrollError;
+        setSetup({ step: "enroll", factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
+        setCode("");
+        setMessage("Authenticator verified. Add this phone as an authenticator using the QR code or setup key below.");
+        return;
+      }
+
       setSetup(null);
       setCode("");
-      setMessage("MFA verified. Administrator account management is now available.");
+      setMessage("New authenticator verified. Administrator account management is now available.");
       await load();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The MFA code could not be verified.");
+      setError(caught instanceof Error ? caught.message : "MFA setup could not be completed.");
     } finally {
       setBusy(false);
     }
@@ -139,14 +161,14 @@ export default function AdminAccountsPage() {
         {message && <div className="admin-success" role="status">{message}</div>}
         {mfaRequired ? (
           <section className="review-panel">
-            <div className="review-toolbar"><div><span className="panel-kicker">MULTI-FACTOR AUTHENTICATION</span><h2>Verify an authenticator</h2></div></div>
-            <p className="admin-footnote">Account management requires a confirmed email and an AAL2 session. Enroll a time-based authenticator, then verify its current code.</p>
+            <div className="review-toolbar"><div><span className="panel-kicker">MULTI-FACTOR AUTHENTICATION</span><h2>{setup?.step === "verify-existing" ? "Verify your current authenticator" : setup?.step === "enroll" ? "Add an authenticator to this phone" : "Set up an authenticator"}</h2></div></div>
+            <p className="admin-footnote">{setup?.step === "verify-existing" ? "An authenticator is already linked to this account. Enter its current code to confirm it is you; then a QR code and setup key will appear for this phone." : setup?.step === "enroll" ? "Add this new factor to an authenticator app, then enter its current six-digit code. If you are using the same phone, enter the setup key manually instead of scanning the QR code." : "Administrator access requires a confirmed email and an AAL2 session. If an authenticator is already linked, verify it first to add one on this phone."}</p>
             {setup ? (
               <form className="account-mfa-form" onSubmit={(event) => void verifyMfa(event)}>
                 {setup.qrCode && <Image src={setup.qrCode} alt="Authenticator enrollment QR code" width={200} height={200} unoptimized />}
                 {setup.secret && <p>Or enter this setup key manually: <code>{setup.secret}</code></p>}
-                <label htmlFor="admin-authenticator-code">Authenticator code<input id="admin-authenticator-code" type="text" inputMode="numeric" autoComplete="one-time-code" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={code} onChange={(event) => setCode(event.target.value)} required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label>
-                <button disabled={busy}>{busy ? "Verifying…" : "Verify and continue"}</button>
+                <label htmlFor="admin-authenticator-code">{setup.step === "verify-existing" ? "Current authenticator code" : "New authenticator code"}<input id="admin-authenticator-code" type="text" inputMode="numeric" autoComplete="one-time-code" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={code} onChange={(event) => setCode(event.target.value)} required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label>
+                <button disabled={busy}>{busy ? "Verifying…" : setup.step === "verify-existing" ? "Verify and set up this phone" : "Verify and continue"}</button>
               </form>
             ) : <button className="account-primary-button" disabled={busy} onClick={() => void enableMfa()}>{busy ? "Starting…" : "Set up an authenticator"}</button>}
           </section>
