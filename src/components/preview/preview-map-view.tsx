@@ -128,7 +128,7 @@ export function PreviewMapView({ outages, onOpenReport }: PreviewMapViewProps) {
       </div>
 
       {/* Map Frame */}
-      <div className={`relative h-[380px] sm:h-[480px] lg:h-[540px] w-full overflow-hidden rounded-2xl border shadow-2xl ${
+      <div className={`preview-map-frame relative h-[380px] sm:h-[480px] lg:h-[540px] w-full overflow-hidden rounded-2xl border shadow-2xl ${
         isDark ? "border-white/10 bg-[#081524]" : "border-slate-200 bg-slate-100"
       }`}>
         <PreviewLeafletMap

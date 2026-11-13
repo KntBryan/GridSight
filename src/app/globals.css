@@ -439,6 +439,10 @@ button { cursor: pointer; }
 .admin-brand > span { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 5px; background: #eaf2e9; color: #488264; }
 .admin-brand b { color: #bcc5bd; }
 
+@media (max-width: 640px) {
+  .preview-map-frame .leaflet-control-attribution { max-width: calc(100% - 150px); font-size: 8px; line-height: 1.35; padding: 2px 4px; }
+}
+
 @media (max-width: 700px) {
   .auth-page { grid-template-columns: 1fr; }
   .auth-side { min-height: 235px; padding: 19px 22px; }
@@ -470,6 +474,8 @@ button { cursor: pointer; }
   .review-filter { flex-wrap: wrap; }
   .review-table { min-width: 720px; }
   .admin-footnote { align-items: flex-start; }
+  .account-mfa-form label { width: min(100%, 22rem); }
+  .account-mfa-form input { width: 100%; }
 }
 
 @media (max-width: 420px) {

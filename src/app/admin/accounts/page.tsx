@@ -8,7 +8,7 @@ import { AdminHeader } from "@/components/admin/admin-header";
 
 type Account = { id: string; name: string; email: string; role: "user" | "admin"; created_at: string };
 type AuditEntry = { id: number; actor_id: string | null; actor_label: string | null; target_id: string | null; action: string; created_at: string };
-type TotpSetup = { factorId: string; challengeId: string; qrCode?: string; secret?: string };
+type TotpSetup = { factorId: string; qrCode?: string; secret?: string };
 
 export default function AdminAccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -84,9 +84,7 @@ export default function AdminAccountsPage() {
       if (factorsError) throw factorsError;
       const verifiedFactor = factors.totp.find((factor) => factor.status === "verified");
       if (verifiedFactor) {
-        const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedFactor.id });
-        if (challengeError) throw challengeError;
-        setSetup({ factorId: verifiedFactor.id, challengeId: challenge.id });
+        setSetup({ factorId: verifiedFactor.id });
         return;
       }
 
@@ -98,9 +96,7 @@ export default function AdminAccountsPage() {
       }
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "GridSight admin" });
       if (enrollError) throw enrollError;
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: data.id });
-      if (challengeError) throw challengeError;
-      setSetup({ factorId: data.id, challengeId: challenge.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
+      setSetup({ factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "MFA enrollment could not be started.");
     } finally {
@@ -110,14 +106,16 @@ export default function AdminAccountsPage() {
 
   async function verifyMfa(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!setup) return;
+    if (!setup || busy) return;
     setBusy(true);
     setError("");
     try {
       const supabase = createSupabaseBrowserClient();
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: setup.factorId });
+      if (challengeError) throw challengeError;
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: setup.factorId,
-        challengeId: setup.challengeId,
+        challengeId: challenge.id,
         code: code.trim(),
       });
       if (verifyError) throw verifyError;
@@ -147,7 +145,7 @@ export default function AdminAccountsPage() {
               <form className="account-mfa-form" onSubmit={(event) => void verifyMfa(event)}>
                 {setup.qrCode && <Image src={setup.qrCode} alt="Authenticator enrollment QR code" width={200} height={200} unoptimized />}
                 {setup.secret && <p>Or enter this setup key manually: <code>{setup.secret}</code></p>}
-                <label>Authenticator code<input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} required minLength={6} maxLength={8} pattern="[0-9]{6,8}" /></label>
+                <label htmlFor="admin-authenticator-code">Authenticator code<input id="admin-authenticator-code" type="text" inputMode="numeric" autoComplete="one-time-code" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={code} onChange={(event) => setCode(event.target.value)} required minLength={6} maxLength={6} pattern="[0-9]{6}" /></label>
                 <button disabled={busy}>{busy ? "Verifying…" : "Verify and continue"}</button>
               </form>
             ) : <button className="account-primary-button" disabled={busy} onClick={() => void enableMfa()}>{busy ? "Starting…" : "Set up an authenticator"}</button>}
