@@ -71,6 +71,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      suppressHydrationWarning
       className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 ${
         theme === "dark"
           ? "border-white/15 bg-white/[0.08] text-amber-300 hover:bg-white/20 hover:text-amber-200"

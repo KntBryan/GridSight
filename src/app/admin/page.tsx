@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, CircleAlert, Download, LoaderCircle, MapPin, ShieldCheck, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { AdminHeader, type AdminTheme } from "@/components/admin/admin-header";
+import { AdminHeader } from "@/components/admin/admin-header";
+import { ThemeProvider, useTheme } from "@/components/preview/preview-theme";
 
 type ReviewReport = {
   id: string;
@@ -17,7 +18,8 @@ type ReviewReport = {
 type AdminOutage = { id: string; area_name: string; city: string; status: "unconfirmed" | "active" | "restored"; report_count: number; first_reported_at: string };
 type AreaAnalytics = { area_id: string; area_name: string; city: string; outages_last_30_days: number; total_outages: number; active_outages: number; average_restoration_minutes: number | null };
 
-export default function AdminPage() {
+function AdminPageInner() {
+  const { theme } = useTheme();
   const [reports, setReports] = useState<ReviewReport[]>([]);
   const [outages, setOutages] = useState<AdminOutage[]>([]);
   const [reportsToday, setReportsToday] = useState(0);
@@ -33,17 +35,6 @@ export default function AdminPage() {
   const [dateFilter, setDateFilter] = useState("");
   const [toDateFilter, setToDateFilter] = useState("");
   const [busyId, setBusyId] = useState("");
-  const [adminTheme, setAdminTheme] = useState<AdminTheme>("light");
-
-  useEffect(() => {
-    const saved = typeof window !== "undefined" ? localStorage.getItem("admin-theme") : null;
-    if (saved === "dark" || saved === "light") setAdminTheme(saved);
-  }, []);
-
-  function handleThemeChange(next: AdminTheme) {
-    setAdminTheme(next);
-    localStorage.setItem("admin-theme", next);
-  }
 
   const loadReports = useCallback(async () => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -131,8 +122,8 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="admin-page" data-admin-theme={adminTheme}>
-      <AdminHeader activePage="desk" theme={adminTheme} onThemeChange={handleThemeChange} />
+    <main className="admin-page" data-admin-theme={theme}>
+      <AdminHeader activePage="desk" />
       <div className="admin-content">
         <div className="admin-heading"><div><span className="eyebrow">REPORT REVIEW · SURIGAO CITY · BARANGAY PILOT</span><h1>Signal desk</h1><p>Review community observations and keep the outage picture credible.</p></div><div className="admin-stat"><span>INCOMING REPORTS</span><strong suppressHydrationWarning>{reports.length.toString().padStart(2, "0")}</strong></div></div>
         <div className="admin-summary"><div><span className="summary-icon red"><CircleAlert size={17} /></span><span><strong suppressHydrationWarning>{reports.filter((report) => report.verification_status === "pending").length}</strong><small>Awaiting review</small></span></div><div><span className="summary-icon green"><Check size={17} /></span><span><strong suppressHydrationWarning>{outages.filter((outage) => outage.status === "active").length}</strong><small>Active outages</small></span></div><div><span className="summary-icon gray"><ShieldCheck size={17} /></span><span><strong suppressHydrationWarning>{reportsToday}</strong><small>Reports today</small></span></div><div><span className="summary-icon gray"><MapPin size={17} /></span><span><strong suppressHydrationWarning>{new Set(outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area_name)).size}</strong><small>Barangays affected</small></span></div></div>
@@ -152,5 +143,13 @@ export default function AdminPage() {
         <section className="review-panel analytics-panel"><div className="review-toolbar"><div><span className="panel-kicker">HISTORICAL SIGNALS</span><h2>Area trends</h2></div><span className="review-filter">30-day frequency · all-time restoration average</span></div><div className="table-scroll"><table className="review-table"><thead><tr><th>AREA</th><th>OUTAGES · 30 DAYS</th><th>ACTIVE</th><th>ALL-TIME OUTAGES</th><th>AVG RESTORATION</th></tr></thead><tbody>{analytics.map((item) => <tr key={item.area_id}><td><strong>{item.area_name}</strong><small>{item.city}</small></td><td>{item.outages_last_30_days}</td><td>{item.active_outages}</td><td>{item.total_outages}</td><td>{item.average_restoration_minutes == null ? "—" : `${Math.round(item.average_restoration_minutes)} min`}</td></tr>)}{analytics.length === 0 && <tr><td colSpan={5} className="no-reports">Historical metrics will appear as outages are recorded.</td></tr>}</tbody></table></div></section>
       </div>
     </main>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <ThemeProvider>
+      <AdminPageInner />
+    </ThemeProvider>
   );
 }

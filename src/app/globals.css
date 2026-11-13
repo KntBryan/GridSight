@@ -439,20 +439,15 @@ button { cursor: pointer; }
 .admin-brand > span { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 5px; background: #eaf2e9; color: #488264; }
 .admin-brand b { color: #bcc5bd; }
 
-/* ── Admin theme toggle button ───────────────────────────────────────────── */
-.admin-theme-toggle { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #e2e8f0; border-radius: 9px; background: white; color: #475569; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease; margin-left: 4px; }
-.admin-theme-toggle:hover { border-color: #93c5fd; background: #eff6ff; color: #0d6edc; }
-
 /* ── Admin dark mode overrides ───────────────────────────────────────────── */
 [data-admin-theme="dark"].admin-page { background: #0b1120; color: #e2e8f0; }
 [data-admin-theme="dark"] .admin-topbar { border-bottom-color: #1e2d45; background: rgba(11,17,32,.95); box-shadow: 0 1px 3px #00000040; }
 [data-admin-theme="dark"] .admin-logo { color: #f1f5f9; }
 [data-admin-theme="dark"] .admin-logo-copy small { color: #64748b; }
+[data-admin-theme="dark"] .admin-nav { border-top-color: #1e2d45; }
 [data-admin-theme="dark"] .admin-nav a { color: #94a3b8; }
 [data-admin-theme="dark"] .admin-nav a:hover, [data-admin-theme="dark"] .admin-nav a.active { color: #60a5fa; }
 [data-admin-theme="dark"] .admin-nav .admin-nav-return { color: #64748b; }
-[data-admin-theme="dark"] .admin-theme-toggle { border-color: #1e2d45; background: #0f1e30; color: #94a3b8; }
-[data-admin-theme="dark"] .admin-theme-toggle:hover { border-color: #3b82f6; background: #172038; color: #60a5fa; }
 [data-admin-theme="dark"] .admin-page .eyebrow, [data-admin-theme="dark"] .admin-page .panel-kicker { color: #64748b; }
 [data-admin-theme="dark"] .admin-heading h1 { color: #f1f5f9; }
 [data-admin-theme="dark"] .admin-heading p { color: #64748b; }
