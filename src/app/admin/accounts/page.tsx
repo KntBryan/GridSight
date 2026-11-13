@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { LoaderCircle } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminHeader, type AdminTheme } from "@/components/admin/admin-header";
 
 type Account = { id: string; name: string; email: string; role: "user" | "admin"; created_at: string };
 type AuditEntry = { id: number; actor_id: string | null; actor_label: string | null; target_id: string | null; action: string; created_at: string };
@@ -21,6 +21,17 @@ export default function AdminAccountsPage() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [setup, setSetup] = useState<TotpSetup | null>(null);
   const [code, setCode] = useState("");
+  const [adminTheme, setAdminTheme] = useState<AdminTheme>("light");
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("admin-theme") : null;
+    if (saved === "dark" || saved === "light") setAdminTheme(saved);
+  }, []);
+
+  function handleThemeChange(next: AdminTheme) {
+    setAdminTheme(next);
+    localStorage.setItem("admin-theme", next);
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -153,8 +164,8 @@ export default function AdminAccountsPage() {
   }
 
   return (
-    <main className="admin-page">
-      <AdminHeader activePage="accounts" />
+    <main className="admin-page" data-admin-theme={adminTheme}>
+      <AdminHeader activePage="accounts" theme={adminTheme} onThemeChange={handleThemeChange} />
       <div className="admin-content">
         <div className="admin-heading"><div><span className="eyebrow">ACCESS CONTROL</span><h1>Administrator accounts</h1><p>Invite staff, manage confirmed accounts, and review role-change history.</p></div></div>
         {error && <div className="admin-error" role="alert">{error}</div>}

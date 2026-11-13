@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, CircleAlert, Download, LoaderCircle, MapPin, ShieldCheck, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminHeader, type AdminTheme } from "@/components/admin/admin-header";
 
 type ReviewReport = {
   id: string;
@@ -33,6 +33,17 @@ export default function AdminPage() {
   const [dateFilter, setDateFilter] = useState("");
   const [toDateFilter, setToDateFilter] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [adminTheme, setAdminTheme] = useState<AdminTheme>("light");
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("admin-theme") : null;
+    if (saved === "dark" || saved === "light") setAdminTheme(saved);
+  }, []);
+
+  function handleThemeChange(next: AdminTheme) {
+    setAdminTheme(next);
+    localStorage.setItem("admin-theme", next);
+  }
 
   const loadReports = useCallback(async () => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -120,8 +131,8 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="admin-page">
-      <AdminHeader activePage="desk" />
+    <main className="admin-page" data-admin-theme={adminTheme}>
+      <AdminHeader activePage="desk" theme={adminTheme} onThemeChange={handleThemeChange} />
       <div className="admin-content">
         <div className="admin-heading"><div><span className="eyebrow">REPORT REVIEW · SURIGAO CITY · BARANGAY PILOT</span><h1>Signal desk</h1><p>Review community observations and keep the outage picture credible.</p></div><div className="admin-stat"><span>INCOMING REPORTS</span><strong suppressHydrationWarning>{reports.length.toString().padStart(2, "0")}</strong></div></div>
         <div className="admin-summary"><div><span className="summary-icon red"><CircleAlert size={17} /></span><span><strong suppressHydrationWarning>{reports.filter((report) => report.verification_status === "pending").length}</strong><small>Awaiting review</small></span></div><div><span className="summary-icon green"><Check size={17} /></span><span><strong suppressHydrationWarning>{outages.filter((outage) => outage.status === "active").length}</strong><small>Active outages</small></span></div><div><span className="summary-icon gray"><ShieldCheck size={17} /></span><span><strong suppressHydrationWarning>{reportsToday}</strong><small>Reports today</small></span></div><div><span className="summary-icon gray"><MapPin size={17} /></span><span><strong suppressHydrationWarning>{new Set(outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area_name)).size}</strong><small>Barangays affected</small></span></div></div>

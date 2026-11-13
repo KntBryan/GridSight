@@ -439,6 +439,66 @@ button { cursor: pointer; }
 .admin-brand > span { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 5px; background: #eaf2e9; color: #488264; }
 .admin-brand b { color: #bcc5bd; }
 
+/* ── Admin theme toggle button ───────────────────────────────────────────── */
+.admin-theme-toggle { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid #e2e8f0; border-radius: 9px; background: white; color: #475569; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease; margin-left: 4px; }
+.admin-theme-toggle:hover { border-color: #93c5fd; background: #eff6ff; color: #0d6edc; }
+
+/* ── Admin dark mode overrides ───────────────────────────────────────────── */
+[data-admin-theme="dark"].admin-page { background: #0b1120; color: #e2e8f0; }
+[data-admin-theme="dark"] .admin-topbar { border-bottom-color: #1e2d45; background: rgba(11,17,32,.95); box-shadow: 0 1px 3px #00000040; }
+[data-admin-theme="dark"] .admin-logo { color: #f1f5f9; }
+[data-admin-theme="dark"] .admin-logo-copy small { color: #64748b; }
+[data-admin-theme="dark"] .admin-nav a { color: #94a3b8; }
+[data-admin-theme="dark"] .admin-nav a:hover, [data-admin-theme="dark"] .admin-nav a.active { color: #60a5fa; }
+[data-admin-theme="dark"] .admin-nav .admin-nav-return { color: #64748b; }
+[data-admin-theme="dark"] .admin-theme-toggle { border-color: #1e2d45; background: #0f1e30; color: #94a3b8; }
+[data-admin-theme="dark"] .admin-theme-toggle:hover { border-color: #3b82f6; background: #172038; color: #60a5fa; }
+[data-admin-theme="dark"] .admin-page .eyebrow, [data-admin-theme="dark"] .admin-page .panel-kicker { color: #64748b; }
+[data-admin-theme="dark"] .admin-heading h1 { color: #f1f5f9; }
+[data-admin-theme="dark"] .admin-heading p { color: #64748b; }
+[data-admin-theme="dark"] .admin-stat { border-color: #1e2d45; background: #0f1e30; box-shadow: none; }
+[data-admin-theme="dark"] .admin-stat span { color: #64748b; }
+[data-admin-theme="dark"] .admin-stat strong { color: #f1f5f9; }
+[data-admin-theme="dark"] .admin-summary > div { border-color: #1e2d45; background: #0f1e30; box-shadow: none; }
+[data-admin-theme="dark"] .admin-summary strong { color: #f1f5f9; }
+[data-admin-theme="dark"] .admin-summary small { color: #64748b; }
+[data-admin-theme="dark"] .summary-icon.red { background: #2d0f18; color: #f87171; }
+[data-admin-theme="dark"] .summary-icon.green { background: #052e16; color: #34d399; }
+[data-admin-theme="dark"] .summary-icon.gray { background: #0f172a; color: #60a5fa; }
+[data-admin-theme="dark"] .review-panel { border-color: #1e2d45; background: #0f1e30; box-shadow: none; }
+[data-admin-theme="dark"] .review-toolbar { border-bottom-color: #1e2d45; }
+[data-admin-theme="dark"] .review-toolbar h2 { color: #f1f5f9; }
+[data-admin-theme="dark"] .review-export-row { border-bottom-color: #1e2d45; }
+[data-admin-theme="dark"] .csv-export { border-color: #1e2d45; background: #0b1120; color: #94a3b8; }
+[data-admin-theme="dark"] .csv-export:hover { border-color: #3b82f6; background: #172038; }
+[data-admin-theme="dark"] .review-filter { color: #94a3b8; }
+[data-admin-theme="dark"] .review-filter select, [data-admin-theme="dark"] .review-filter input { border-color: #1e2d45; background: #0b1120; color: #e2e8f0; color-scheme: dark; }
+[data-admin-theme="dark"] .review-table th { background: #0b1120; border-bottom-color: #1e2d45; color: #64748b; }
+[data-admin-theme="dark"] .review-table td { border-bottom-color: #142030; color: #94a3b8; }
+[data-admin-theme="dark"] .review-table td:first-child strong { color: #e2e8f0; }
+[data-admin-theme="dark"] .review-table td:first-child small { color: #64748b; }
+[data-admin-theme="dark"] .review-note { color: #64748b !important; }
+[data-admin-theme="dark"] .review-state { background: #142030; color: #94a3b8; }
+[data-admin-theme="dark"] .review-no_power, [data-admin-theme="dark"] .review-flickering { background: #2d0f18; color: #f87171; }
+[data-admin-theme="dark"] .review-restored, [data-admin-theme="dark"] .review-verified, [data-admin-theme="dark"] .review-active { background: #052e16; color: #34d399; }
+[data-admin-theme="dark"] .review-pending, [data-admin-theme="dark"] .review-unconfirmed { background: #1c1507; color: #fbbf24; }
+[data-admin-theme="dark"] .review-dismissed { background: #142030; color: #64748b; }
+[data-admin-theme="dark"] .review-actions button { border-color: #1e2d45; background: #0b1120; color: #34d399; }
+[data-admin-theme="dark"] .review-actions button:hover:not(:disabled) { border-color: #34d399; background: #052e16; }
+[data-admin-theme="dark"] .review-actions button:last-child { color: #f87171; }
+[data-admin-theme="dark"] .review-actions button:last-child:hover:not(:disabled) { border-color: #f87171; background: #2d0f18; }
+[data-admin-theme="dark"] .override-control select { border-color: #1e2d45; background: #0b1120; color: #e2e8f0; color-scheme: dark; }
+[data-admin-theme="dark"] .no-reports { color: #64748b !important; }
+[data-admin-theme="dark"] .admin-error { border-color: #7f1d1d; background: #2d0f18; color: #fca5a5; }
+[data-admin-theme="dark"] .admin-error a { color: #93c5fd; }
+[data-admin-theme="dark"] .admin-success { border-color: #14532d; background: #052e16; color: #6ee7b7; }
+[data-admin-theme="dark"] .admin-loading { color: #64748b; }
+[data-admin-theme="dark"] .admin-footnote { color: #64748b; }
+[data-admin-theme="dark"] .account-invite-form label, [data-admin-theme="dark"] .account-mfa-form label { color: #cbd5e1; }
+[data-admin-theme="dark"] .account-invite-form input, [data-admin-theme="dark"] .account-mfa-form input { border-color: #1e2d45; background: #0b1120; color: #e2e8f0; }
+[data-admin-theme="dark"] .account-mfa-form img { border-color: #1e2d45; background: #f8fafc; }
+[data-admin-theme="dark"] .account-mfa-form { color: #94a3b8; }
+
 @media (max-width: 640px) {
   .preview-map-frame .leaflet-control-attribution { max-width: calc(100% - 150px); font-size: 8px; line-height: 1.35; padding: 2px 4px; }
 }
