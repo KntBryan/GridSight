@@ -274,25 +274,22 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
           <div className="hidden xl:flex items-center gap-3">
             <ThemeToggle />
 
-            {/* Notifications Button (if signed in) */}
-            {user?.isSignedIn && (
-              <Link
-                href="/notifications"
-                aria-label="Notifications"
-                className={`relative grid h-9 w-9 place-items-center rounded-full border transition ${
-                  isDark
-                    ? "border-white/15 bg-white/[0.08] text-white/80 hover:bg-white/15 hover:text-white"
-                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-sm"
-                }`}
-              >
-                <Bell size={16} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </Link>
-            )}
+            <Link
+              href="/notifications"
+              aria-label="Notifications"
+              className={`relative grid h-9 w-9 place-items-center rounded-full border transition ${
+                isDark
+                  ? "border-white/15 bg-white/[0.08] text-white/80 hover:bg-white/15 hover:text-white"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-sm"
+              }`}
+            >
+              <Bell size={16} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </Link>
 
             {/* Report Outage Button */}
             <button
@@ -484,25 +481,22 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
               <span className="max-[380px]:hidden">Report</span>
             </button>
 
-            {/* Notification Bell (mobile if signed in) */}
-            {user?.isSignedIn && (
-              <Link
-                href="/notifications"
-                aria-label="Notifications"
-                className={`relative grid h-8 w-8 place-items-center rounded-lg border transition max-[380px]:hidden ${
-                  isDark
-                    ? "border-white/15 bg-white/[0.06] text-white"
-                    : "border-slate-300 bg-white text-slate-800"
-                }`}
-              >
-                <Bell size={15} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
-                    {unreadCount}
-                  </span>
-                )}
-              </Link>
-            )}
+            <Link
+              href="/notifications"
+              aria-label="Notifications"
+              className={`relative grid h-8 w-8 place-items-center rounded-lg border transition max-[380px]:hidden ${
+                isDark
+                  ? "border-white/15 bg-white/[0.06] text-white"
+                  : "border-slate-300 bg-white text-slate-800"
+              }`}
+            >
+              <Bell size={15} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
 
             {/* Hamburger Menu Toggle */}
             <button
@@ -602,6 +596,23 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
                 <span>Dashboard</span>
                 <span className="text-xs opacity-50">Stats</span>
               </button>
+              <Link
+                href="/notifications"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center justify-between py-2.5 border-b ${
+                  isDark ? "border-white/[0.06] text-white/80" : "border-slate-100 text-slate-700"
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Bell size={15} className="text-amber-500" />
+                  <span>Notifications</span>
+                </span>
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    {unreadCount} new
+                  </span>
+                )}
+              </Link>
 
               {/* Extra Account Links */}
               {user?.isSignedIn ? (
@@ -625,23 +636,6 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
                   >
                     <FileClock size={15} className="text-emerald-500" />
                     <span>My Outage Reports</span>
-                  </Link>
-                  <Link
-                    href="/notifications"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center justify-between py-2.5 border-b ${
-                      isDark ? "border-white/[0.06] text-white/80" : "border-slate-100 text-slate-700"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Bell size={15} className="text-amber-500" />
-                      <span>Notifications</span>
-                    </div>
-                    {unreadCount > 0 && (
-                      <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                        {unreadCount} new
-                      </span>
-                    )}
                   </Link>
                   {user.isAdmin && (
                     <Link

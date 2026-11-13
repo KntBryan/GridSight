@@ -179,11 +179,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.json({ reports: [] });
+    return NextResponse.json({ error: "Reporting is not configured yet." }, { status: 503 });
   }
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to view report history." }, { status: 401 });
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return NextResponse.json({ error: "Sign in to view report history." }, { status: 401 });
 
   const { data, error } = await supabase.from("reports")
     .select("id, area_id, outage_id, status, verification_status, notes, photo_path, created_at, areas(name, city)")
@@ -191,5 +191,5 @@ export async function GET() {
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) return NextResponse.json({ error: "Report history is unavailable." }, { status: 500 });
-  return NextResponse.json({ reports: data });
+  return NextResponse.json({ reports: data }, { headers: { "Cache-Control": "private, no-store" } });
 }

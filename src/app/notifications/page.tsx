@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { ThemeProvider, ThemeToggle, useTheme } from "@/components/preview/preview-theme";
+import { ProtectedPage } from "@/components/auth/auth-gate";
 
 type NotificationItem = {
   id: string;
@@ -305,7 +306,13 @@ function NotificationsPageInner() {
 export default function NotificationsPage() {
   return (
     <ThemeProvider>
-      <NotificationsPageInner />
+      <ProtectedPage
+        returnTo="/notifications"
+        title="Sign in to view your notifications"
+        description="Sign in or create a free account to see updates about your reports and the areas you follow."
+      >
+        <NotificationsPageInner />
+      </ProtectedPage>
     </ThemeProvider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { MapOutage } from "@/components/outage-map";
 import { ThemeProvider, useTheme } from "@/components/preview/preview-theme";
 import { PreviewNav, type PreviewTab } from "@/components/preview/preview-nav";
@@ -9,15 +10,35 @@ import { PreviewMapView } from "@/components/preview/preview-map-view";
 import { PreviewUpdatesView } from "@/components/preview/preview-updates-view";
 import { PreviewDashboardView } from "@/components/preview/preview-dashboard-view";
 import { PreviewReportModal } from "@/components/preview/preview-report-modal";
+import { AuthGatePanel, useAuthenticatedUser } from "@/components/auth/auth-gate";
+import { authHref, safeReturnPath } from "@/lib/auth/return-path.mjs";
+
+interface AuthGateRequest {
+  returnTo: string;
+  title: string;
+  description: string;
+}
+
+const protectedTabs = new Set<PreviewTab>(["map", "updates", "dashboard"]);
+
+function tabTitle(tab: PreviewTab) {
+  if (tab === "map") return "the outage map";
+  if (tab === "updates") return "community updates";
+  return "the dashboard";
+}
 
 function PreviewPageInner() {
+  const router = useRouter();
   const { theme } = useTheme();
+  const { user, loading: authLoading } = useAuthenticatedUser();
+  const userId = user?.id;
   const isDark = theme === "dark";
 
   const [currentTab, setCurrentTab] = useState<PreviewTab>("home");
   const [outages, setOutages] = useState<MapOutage[]>([]);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [authGate, setAuthGate] = useState<AuthGateRequest | null>(null);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -25,14 +46,23 @@ function PreviewPageInner() {
       setToastMessage(null);
     }, 4000);
   }, []);
+  const visibleTab = !authLoading && user ? currentTab : "home";
 
-  // Fetch live outages from the existing API
   useEffect(() => {
+    if (authLoading || !userId) {
+      setOutages([]);
+      return;
+    }
+
     let active = true;
 
     async function loadOutages() {
       try {
         const res = await fetch("/api/outages", { cache: "no-store" });
+        if (res.status === 401) {
+          setOutages([]);
+          return;
+        }
         if (!res.ok) return;
         const data = await res.json();
         if (Array.isArray(data.outages) && active) {
@@ -63,7 +93,100 @@ function PreviewPageInner() {
       active = false;
       clearInterval(interval);
     };
+  }, [authLoading, userId]);
+
+  const restoreIntent = useCallback((returnTo: string) => {
+    const destination = new URL(safeReturnPath(returnTo), window.location.origin);
+    const requestedTab = destination.searchParams.get("tab") as PreviewTab | null;
+    const tab = requestedTab && (requestedTab === "home" || protectedTabs.has(requestedTab))
+      ? requestedTab
+      : "map";
+    setCurrentTab(tab);
+    if (destination.searchParams.get("report") === "1") {
+      setReportModalOpen(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    const url = new URL(window.location.href);
+    const requestedTab = url.searchParams.get("tab") as PreviewTab | null;
+    const hasProtectedIntent =
+      (requestedTab !== null && protectedTabs.has(requestedTab)) ||
+      url.searchParams.get("report") === "1";
+    if (!hasProtectedIntent) return;
+
+    const returnTo = safeReturnPath(`${url.pathname}${url.search}`);
+    if (!user) {
+      setAuthGate({
+        returnTo,
+        title: requestedTab === "updates"
+          ? "Sign in to view community updates"
+          : requestedTab === "dashboard"
+            ? "Sign in to view the dashboard"
+            : url.searchParams.get("report") === "1"
+              ? "Sign in to report an outage"
+              : "Sign in to view the outage map",
+        description: "Sign in or create a free account to continue. We’ll bring you back to where you left off.",
+      });
+      return;
+    }
+
+    restoreIntent(returnTo);
+    window.history.replaceState(null, "", url.pathname);
+  }, [authLoading, restoreIntent, user]);
+
+  useEffect(() => {
+    if (authLoading || user) return;
+    if (currentTab !== "home") setCurrentTab("home");
+    if (reportModalOpen) setReportModalOpen(false);
+  }, [authLoading, currentTab, reportModalOpen, user]);
+
+  useEffect(() => {
+    if (authLoading || !user || !authGate) return;
+    restoreIntent(authGate.returnTo);
+    setAuthGate(null);
+  }, [authGate, authLoading, restoreIntent, user]);
+
+  const selectTab = useCallback((tab: PreviewTab) => {
+    if (tab === "home") {
+      setCurrentTab("home");
+      setAuthGate(null);
+      return;
+    }
+    if (authLoading || !user) {
+      setAuthGate({
+        returnTo: `/?tab=${tab}`,
+        title: `Sign in to view ${tabTitle(tab)}`,
+        description: "Sign in or create a free account to continue. We’ll bring you back to this section.",
+      });
+      return;
+    }
+    setCurrentTab(tab);
+    setAuthGate(null);
+  }, [authLoading, user]);
+
+  const openReport = useCallback(() => {
+    const destinationTab = currentTab === "home" ? "map" : currentTab;
+    if (authLoading || !user) {
+      setAuthGate({
+        returnTo: `/?tab=${destinationTab}&report=1`,
+        title: "Sign in to report an outage",
+        description: "Create an account or sign in to submit a community outage report. Your report form will reopen when you return.",
+      });
+      return;
+    }
+    setCurrentTab(destinationTab);
+    setReportModalOpen(true);
+    setAuthGate(null);
+  }, [authLoading, currentTab, user]);
+
+  const redirectForExpiredReportSession = useCallback(() => {
+    const destinationTab = currentTab === "home" ? "map" : currentTab;
+    setReportModalOpen(false);
+    router.push(authHref("/login", `/?tab=${destinationTab}&report=1`));
+  }, [currentTab, router]);
 
   return (
     <div
@@ -87,45 +210,59 @@ function PreviewPageInner() {
 
       {/* Navigation & Header */}
       <PreviewNav
-        currentTab={currentTab}
-        onSelectTab={(tab) => setCurrentTab(tab)}
-        onOpenReport={() => setReportModalOpen(true)}
+        currentTab={visibleTab}
+        onSelectTab={selectTab}
+        onOpenReport={openReport}
       />
 
       {/* Active View Container */}
       <main>
-        {currentTab === "home" && (
+        {visibleTab === "home" && (
           <PreviewLanding
-            onGoToMap={() => setCurrentTab("map")}
-            onOpenReport={() => setReportModalOpen(true)}
-            onGoToUpdates={() => setCurrentTab("updates")}
+            onGoToMap={() => selectTab("map")}
+            onOpenReport={openReport}
+            onGoToUpdates={() => selectTab("updates")}
           />
         )}
 
-        {currentTab === "map" && (
+        {visibleTab === "map" && (
           <PreviewMapView
             outages={outages}
-            onOpenReport={() => setReportModalOpen(true)}
+            onOpenReport={openReport}
           />
         )}
 
-        {currentTab === "updates" && <PreviewUpdatesView />}
+        {visibleTab === "updates" && <PreviewUpdatesView />}
 
-        {currentTab === "dashboard" && (
+        {visibleTab === "dashboard" && (
           <PreviewDashboardView
             outages={outages}
-            onOpenReport={() => setReportModalOpen(true)}
-            onGoToMap={() => setCurrentTab("map")}
+            onOpenReport={openReport}
+            onGoToMap={() => selectTab("map")}
           />
         )}
       </main>
 
       {/* Report Modal */}
       <PreviewReportModal
-        isOpen={reportModalOpen}
+        isOpen={reportModalOpen && !authLoading && Boolean(user)}
         onClose={() => setReportModalOpen(false)}
         onSuccessToast={showToast}
+        onAuthRequired={redirectForExpiredReportSession}
       />
+
+      {authGate && (
+        <AuthGatePanel
+          returnTo={authGate.returnTo}
+          title={authGate.title}
+          description={authGate.description}
+          onClose={() => {
+            setAuthGate(null);
+            setCurrentTab("home");
+            window.history.replaceState(null, "", window.location.pathname);
+          }}
+        />
+      )}
     </div>
   );
 }

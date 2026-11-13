@@ -9,12 +9,14 @@ interface PreviewReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccessToast: (msg: string) => void;
+  onAuthRequired: () => void;
 }
 
 export function PreviewReportModal({
   isOpen,
   onClose,
   onSuccessToast,
+  onAuthRequired,
 }: PreviewReportModalProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -25,6 +27,11 @@ export function PreviewReportModal({
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (isOpen) setSubmitError("");
+  }, [isOpen]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -43,6 +50,7 @@ export function PreviewReportModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setSubmitError("");
 
     try {
       const body = new FormData();
@@ -58,29 +66,25 @@ export function PreviewReportModal({
         body,
       });
 
-      if (res.ok) {
-        setSubmitted(true);
-        onSuccessToast("Your community report was submitted for city staff verification.");
-        setTimeout(() => {
-          setSubmitted(false);
-          onClose();
-        }, 1500);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        onSuccessToast(data.error || "Report submission received.");
-        setSubmitted(true);
-        setTimeout(() => {
-          setSubmitted(false);
-          onClose();
-        }, 1500);
+      if (res.status === 401) {
+        onAuthRequired();
+        return;
       }
-    } catch {
-      onSuccessToast("Report simulated successfully in preview mode.");
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSubmitError(data.error || "Your report could not be submitted. Please try again.");
+        return;
+      }
+
       setSubmitted(true);
+      onSuccessToast("Your community report was submitted for city staff verification.");
       setTimeout(() => {
         setSubmitted(false);
         onClose();
       }, 1500);
+    } catch {
+      setSubmitError("Could not connect to GridSight. Check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -158,6 +162,15 @@ export function PreviewReportModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+            {submitError && (
+              <p
+                role="alert"
+                className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-[13px] text-red-500"
+              >
+                {submitError}
+              </p>
+            )}
+
             {/* Barangay Selection */}
             <div>
               <label

@@ -17,13 +17,17 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { ThemeProvider, ThemeToggle, useTheme } from "@/components/preview/preview-theme";
+import { authHref, safeReturnPath } from "@/lib/auth/return-path.mjs";
 
 type Mode = "sign-in" | "create" | "reset" | "update";
+const modes: Mode[] = ["sign-in", "create", "reset", "update"];
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialMode = (searchParams.get("mode") as Mode) || "sign-in";
+  const requestedMode = searchParams.get("mode");
+  const initialMode = modes.includes(requestedMode as Mode) ? requestedMode as Mode : "sign-in";
+  const returnTo = safeReturnPath(searchParams.get("next"));
 
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -40,6 +44,9 @@ function LoginForm() {
     const qMode = searchParams.get("mode") as Mode | null;
     if (qMode && ["sign-in", "create", "reset", "update"].includes(qMode)) {
       setMode(qMode);
+    }
+    if (searchParams.get("authError") === "confirmation") {
+      setError("We couldn’t verify that confirmation link. Please sign in or request a new one.");
     }
   }, [searchParams]);
 
@@ -68,7 +75,7 @@ function LoginForm() {
 
       if (mode === "reset") {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/login?mode=update`,
+          redirectTo: `${window.location.origin}${authHref("/login", returnTo)}&mode=update`,
         });
         if (resetError) throw resetError;
         setMessage("Password reset instructions are on their way. Check your inbox.");
@@ -76,23 +83,29 @@ function LoginForm() {
         const { error: passwordError } = await supabase.auth.updateUser({ password });
         if (passwordError) throw passwordError;
         setMessage("Your password has been updated.");
-        setTimeout(() => router.replace("/"), 1500);
+        setTimeout(() => router.replace(returnTo), 1500);
       } else if (mode === "create") {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { name } },
+          options: {
+            data: { name },
+            emailRedirectTo: new URL(
+              `/auth/callback?next=${encodeURIComponent(returnTo)}`,
+              window.location.origin
+            ).toString(),
+          },
         });
         if (signUpError) throw signUpError;
         if (data.session) {
-          router.replace("/");
+          router.replace(returnTo);
         } else {
           setMessage("Check your inbox to confirm your email, then sign in.");
         }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        router.replace("/");
+        router.replace(returnTo);
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong. Try again.");

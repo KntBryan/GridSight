@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   UserPlus,
   Mail,
@@ -14,9 +14,12 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { ThemeProvider, ThemeToggle, useTheme } from "@/components/preview/preview-theme";
+import { authHref, safeReturnPath } from "@/lib/auth/return-path.mjs";
 
 function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = safeReturnPath(searchParams.get("next"));
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -54,6 +57,10 @@ function RegisterForm() {
           data: {
             name: name.trim(),
           },
+          emailRedirectTo: new URL(
+            `/auth/callback?next=${encodeURIComponent(returnTo)}`,
+            window.location.origin
+          ).toString(),
         },
       });
 
@@ -62,7 +69,7 @@ function RegisterForm() {
       }
 
       if (data.session) {
-        router.replace("/");
+        router.replace(returnTo);
       } else {
         setMessage(
           "Account created! Check your email to confirm your account, then sign in."
@@ -306,7 +313,7 @@ function RegisterForm() {
           {/* Footer Switching Link */}
           <p className={`mt-6 text-center text-sm ${isDark ? "text-white/60" : "text-slate-500"}`}>
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-blue-500 hover:underline">
+            <Link href={authHref("/login", returnTo)} className="font-semibold text-blue-500 hover:underline">
               Sign in
             </Link>
           </p>
@@ -324,7 +331,15 @@ function RegisterForm() {
 export default function RegisterPage() {
   return (
     <ThemeProvider>
-      <RegisterForm />
+      <Suspense
+        fallback={
+          <div className="min-h-screen grid place-items-center bg-[#061120] text-white">
+            <LoaderCircle size={24} className="animate-spin text-blue-500" />
+          </div>
+        }
+      >
+        <RegisterForm />
+      </Suspense>
     </ThemeProvider>
   );
 }

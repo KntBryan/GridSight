@@ -15,13 +15,17 @@ Prerequisites: Node.js 20+, npm, and a Supabase project with PostgreSQL/PostGIS.
    ```
 
 3. Open `http://localhost:3000`.
-4. Apply the migrations in numeric order: `0001_gridsight.sql`, `0002_surigaocity_barangays.sql`, the 15 `0003`–`0017` `surigaocity_barangay_data_part_XX.sql` files, `0018_push_delivery_queue.sql`, then `0019_admin_account_management.sql`. Run each file separately in the SQL Editor and wait for success before continuing.
-5. Enable Realtime for `public.outages` in the Supabase dashboard. The map reads the public-safe `outage_map` view; reports remain private to their author and admins.
-6. Configure email confirmation and password recovery URLs in Supabase Auth. Add `/login` to the allowed redirect URLs.
+4. Apply the migrations in numeric order: `0001_gridsight.sql`, `0002_surigaocity_barangays.sql`, the 15 `0003`–`0017` `surigaocity_barangay_data_part_XX.sql` files, `0018_push_delivery_queue.sql`, `0019_admin_account_management.sql`, then `0020_authenticated_outage_access.sql`. Run each file separately in the SQL Editor and wait for success before continuing.
+5. Enable Realtime for `public.outages` in the Supabase dashboard. The outage map is available to signed-in users through `outage_map`; anonymous access is revoked by migration 0020. Reports remain private to their author and admins.
+6. Configure email confirmation and password recovery URLs in Supabase Auth. Add `/login` and `/auth/callback` on each app origin to the allowed redirect URLs.
 
 The first reporting pilot is Surigao City and its 54 barangays. GPS lookup uses the stored barangay polygons and only resolves coordinates covered by a Surigao City barangay; reports with a GPS pin outside the selected barangay are rejected. Barangay boundaries were filtered from the HDX Philippines Subnational Administrative Boundaries dataset (COD-AB-PHL), sourced from NAMRIA and PSA. Review boundary provenance and updates with the city before relying on it for official decisions.
 
-Without Supabase environment values the homepage runs in local mode. Report submission, accounts, persisted data, map updates, and admin review require the migrations above to be applied to a configured Supabase project.
+Without Supabase environment values the public homepage runs in local mode. Accounts, outage-map data, notifications, report history, report submission, and admin review require a configured Supabase project and the migrations above. The map, notification, and report APIs require an authenticated user.
+
+## Focused auth tests
+
+Run `npm test` for safe return-navigation checks. After `npm run build`, run `npm run test:auth-api` to start the production server and verify anonymous outage, location, report-history, and report-submission requests are rejected.
 
 ## Supabase functions
 
@@ -69,4 +73,4 @@ The service-role key remains server-only. RLS limits audit visibility to adminis
 
 ## Current scope
 
-The repo includes the responsive map/reporting UI, Supabase Auth screens, report and moderation APIs, a spatial schema and clustering RPC, notification storage/push worker, and offline report queue. Before production, add automated tests, complete area-follow and notification-preference screens, implement outage-status override and historical analytics/export workflows, validate the migration against the target Supabase project, and test push/offline behavior on the actual mobile browsers you support.
+The repo includes the responsive map/reporting UI, Supabase Auth screens, report and moderation APIs, a spatial schema and clustering RPC, notification storage/push worker, and offline report queue. Before production, expand automated tests, complete area-follow and notification-preference screens, implement outage-status override and historical analytics/export workflows, validate the migration against the target Supabase project, and test push/offline behavior on the actual mobile browsers you support.

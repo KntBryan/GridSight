@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Clock3,
@@ -20,6 +21,8 @@ import {
 } from "lucide-react";
 import { ThemeProvider, ThemeToggle, useTheme } from "@/components/preview/preview-theme";
 import { PreviewReportModal } from "@/components/preview/preview-report-modal";
+import { ProtectedPage } from "@/components/auth/auth-gate";
+import { authHref } from "@/lib/auth/return-path.mjs";
 
 type Report = {
   id: string;
@@ -33,6 +36,7 @@ type Report = {
 type FilterKey = "all" | "pending" | "verified" | "dismissed";
 
 function ReportsPageInner() {
+  const router = useRouter();
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -50,6 +54,11 @@ function ReportsPageInner() {
   };
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("report") === "1") {
+      setReportModalOpen(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
     async function loadReports() {
       try {
         const response = await fetch("/api/reports", { cache: "no-store" });
@@ -73,6 +82,10 @@ function ReportsPageInner() {
     }
     loadReports();
   }, []);
+
+  function redirectToSignInForReport() {
+    router.replace(authHref("/login", "/reports?report=1"));
+  }
 
   const counts = useMemo(
     () => ({
@@ -415,6 +428,7 @@ function ReportsPageInner() {
         isOpen={reportModalOpen}
         onClose={() => setReportModalOpen(false)}
         onSuccessToast={showToast}
+        onAuthRequired={redirectToSignInForReport}
       />
     </div>
   );
@@ -423,7 +437,13 @@ function ReportsPageInner() {
 export default function ReportsPage() {
   return (
     <ThemeProvider>
-      <ReportsPageInner />
+      <ProtectedPage
+        returnTo="/reports"
+        title="Sign in to view your reports"
+        description="Create an account or sign in to review your report history and submit an outage report."
+      >
+        <ReportsPageInner />
+      </ProtectedPage>
     </ThemeProvider>
   );
 }
