@@ -261,7 +261,13 @@ function NotificationsPageInner() {
                     <div className="min-w-0 space-y-1">
                       <p
                         className={`text-[13.5px] leading-relaxed ${
-                          !item.is_read ? "font-semibold text-white" : isDark ? "text-white/80" : "text-slate-700"
+                          !item.is_read
+                            ? isDark
+                              ? "font-semibold text-white"
+                              : "font-semibold text-slate-900"
+                            : isDark
+                              ? "text-white/80"
+                              : "text-slate-700"
                         }`}
                       >
                         {item.message}
