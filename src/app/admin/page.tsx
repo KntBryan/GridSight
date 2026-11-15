@@ -173,13 +173,11 @@ function AdminPageInner() {
     }
     setAuthorized(true);
 
-    const query = supabase
+    const { data, error: queryError } = await supabase
       .from("reports")
       .select("id, status, verification_status, notes, created_at, areas(name, city)")
       .order("created_at", { ascending: false })
       .limit(250);
-    const { data, error: queryError } =
-      filter === "pending" ? await query.eq("verification_status", "pending") : await query;
 
     if (queryError) {
       setError("Incoming reports could not be loaded.");
@@ -214,7 +212,7 @@ function AdminPageInner() {
     setLastRefreshed(new Date());
     setLoading(false);
     setRefreshing(false);
-  }, [filter]);
+  }, []);
 
   useEffect(() => {
     void loadReports();
@@ -294,9 +292,16 @@ function AdminPageInner() {
     () => outages.filter((o) => o.status === "restored").length,
     [outages]
   );
-  const pendingReportsCount = useMemo(
-    () => reports.filter((r) => r.verification_status === "pending").length,
+  const pendingReports = useMemo(
+    () => reports.filter((r) => r.verification_status === "pending"),
     [reports]
+  );
+  const pendingReportsCount = pendingReports.length;
+  const allReportsCount = reports.length;
+
+  const displayedReports = useMemo(
+    () => (filter === "pending" ? pendingReports : reports),
+    [filter, pendingReports, reports]
   );
 
   const openOutages = useMemo(
@@ -531,13 +536,13 @@ function AdminPageInner() {
                           : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
-                      All reports ({reports.length})
+                      All reports ({allReportsCount})
                     </button>
                   </div>
                 </header>
 
                 <div className="px-5 py-3">
-                  {reports.length === 0 ? (
+                  {displayedReports.length === 0 ? (
                     <div className="py-14 text-center">
                       <p className={`text-[13px] ${isDark ? "text-white/60" : "text-slate-500"}`}>
                         No reports match the current filter.
@@ -545,7 +550,7 @@ function AdminPageInner() {
                     </div>
                   ) : (
                     <ul className={`divide-y ${isDark ? "divide-white/10" : "divide-slate-200"}`}>
-                      {reports.map((report) => {
+                      {displayedReports.map((report) => {
                         const areaName = report.areas?.[0]?.name || "Unknown area";
                         const cityName = report.areas?.[0]?.city || "Surigao City";
                         const observationTone =
