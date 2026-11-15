@@ -21,7 +21,7 @@ export function AdminHeader({ activePage }: AdminHeaderProps) {
         </Link>
         <nav className="admin-nav" aria-label="Administrator navigation">
           <Link href="/admin" aria-current={activePage === "desk" ? "page" : undefined} className={activePage === "desk" ? "active" : undefined}>Admin desk</Link>
-          <Link href="/admin/updates" aria-current={activePage === "updates" ? "page" : undefined} className={activePage === "updates" ? "active" : undefined}>Updates</Link>
+          <Link href="/admin/updates" aria-current={activePage === "updates" ? "page" : undefined} className={activePage === "updates" ? "active" : undefined}>Post Updates</Link>
           <Link href="/admin/accounts" aria-current={activePage === "accounts" ? "page" : undefined} className={activePage === "accounts" ? "active" : undefined}>Accounts</Link>
           <Link href="/" className="admin-nav-return"><ArrowLeft size={15} /> Live map</Link>
           <ThemeToggle />
