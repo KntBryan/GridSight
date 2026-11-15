@@ -19,7 +19,6 @@ export function useAuthenticatedUser() {
     }
 
     let active = true;
-    let authStateReceived = false;
     let supabase: ReturnType<typeof createSupabaseBrowserClient>;
     try {
       supabase = createSupabaseBrowserClient();
@@ -28,34 +27,56 @@ export function useAuthenticatedUser() {
       setLoading(false);
       return;
     }
+
+    // Subscribe to auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!active) return;
-      authStateReceived = true;
-      setUser(session?.user ?? null);
-      setLoading(false);
+      if (session?.user) {
+        setUser(session.user);
+        setLoading(false);
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+        setLoading(false);
+      } else if (event === "INITIAL_SESSION") {
+        // If initial session check in memory was null, check getSession()
+        // so token refresh has a chance to complete before marking as logged out.
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (!active) return;
+          setUser(data.session?.user ?? null);
+        } catch {
+          if (!active) return;
+          setUser(null);
+        } finally {
+          if (active) setLoading(false);
+        }
+      }
     });
 
-    void supabase.auth.getUser().then(({ data: { user: authUser }, error }) => {
-      if (!active || authStateReceived) return;
-      if (error) {
-        console.error("Could not verify the current user:", error);
-        setUser(null);
-      } else {
-        setUser(authUser);
+    // Handle device wake-from-sleep and tab refocus
+    const handleWake = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (active && data.session?.user) {
+            setUser(data.session.user);
+          }
+        } catch (err) {
+          console.warn("Session check on wake failed:", err);
+        }
       }
-      setLoading(false);
-    }).catch((error: unknown) => {
-      if (!active || authStateReceived) return;
-      console.error("Could not verify the current user:", error);
-      setUser(null);
-      setLoading(false);
-    });
+    };
+
+    document.addEventListener("visibilitychange", handleWake);
+    window.addEventListener("focus", handleWake);
 
     return () => {
       active = false;
       subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleWake);
+      window.removeEventListener("focus", handleWake);
     };
   }, []);
 

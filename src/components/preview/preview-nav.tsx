@@ -128,6 +128,14 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
 
     void loadUser();
 
+    const handleWake = () => {
+      if (document.visibilityState === "visible") {
+        void loadUser();
+      }
+    };
+    document.addEventListener("visibilitychange", handleWake);
+    window.addEventListener("focus", handleWake);
+
     try {
       const supabase = createSupabaseBrowserClient();
       const {
@@ -139,9 +147,15 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
       return () => {
         cancelled = true;
         subscription.unsubscribe();
+        document.removeEventListener("visibilitychange", handleWake);
+        window.removeEventListener("focus", handleWake);
       };
     } catch {
-      // ignore
+      return () => {
+        cancelled = true;
+        document.removeEventListener("visibilitychange", handleWake);
+        window.removeEventListener("focus", handleWake);
+      };
     }
   }, []);
 

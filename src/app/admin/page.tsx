@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, CircleAlert, Download, LoaderCircle, MapPin, ShieldCheck, X } from "lucide-react";
+import { Check, CircleAlert, Download, KeyRound, LoaderCircle, MapPin, ShieldCheck, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminMfaModal } from "@/components/admin/admin-mfa-modal";
 import { ThemeProvider, useTheme } from "@/components/preview/preview-theme";
 
 type ReviewReport = {
@@ -129,7 +130,35 @@ function AdminPageInner() {
         <div className="admin-summary"><div><span className="summary-icon red"><CircleAlert size={17} /></span><span><strong suppressHydrationWarning>{reports.filter((report) => report.verification_status === "pending").length}</strong><small>Awaiting review</small></span></div><div><span className="summary-icon green"><Check size={17} /></span><span><strong suppressHydrationWarning>{outages.filter((outage) => outage.status === "active").length}</strong><small>Active outages</small></span></div><div><span className="summary-icon gray"><ShieldCheck size={17} /></span><span><strong suppressHydrationWarning>{reportsToday}</strong><small>Reports today</small></span></div><div><span className="summary-icon gray"><MapPin size={17} /></span><span><strong suppressHydrationWarning>{new Set(outages.filter((outage) => outage.status !== "restored").map((outage) => outage.area_name)).size}</strong><small>Barangays affected</small></span></div></div>
         <section className="review-panel"><div className="review-toolbar"><div><span className="panel-kicker">COMMUNITY FEED</span><h2>Incoming reports</h2></div><div className="review-filters"><label className="review-filter">Review <select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="pending">Needs review</option><option value="all">All reports</option></select></label><label className="review-filter">Barangay <select value={areaFilter} onChange={(event) => setAreaFilter(event.target.value)}><option value="all">All barangays</option>{Array.from(new Set(reports.flatMap((report) => report.areas?.map((area) => area.name) ?? []).filter((name): name is string => Boolean(name)))).map((name) => <option key={name}>{name}</option>)}</select></label><label className="review-filter">Status <select value={reportStatusFilter} onChange={(event) => setReportStatusFilter(event.target.value)}><option value="all">All</option><option value="no_power">No power</option><option value="flickering">Flickering</option><option value="restored">Restored</option></select></label><label className="review-filter">From <input aria-label="Filter reports from date" type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} /></label><label className="review-filter">To <input aria-label="Filter reports through date" type="date" value={toDateFilter} onChange={(event) => setToDateFilter(event.target.value)} /></label></div></div>
         <div className="review-export-row"><div><a className="csv-export" href={`/api/admin/export${dateFilter || toDateFilter ? `?${dateFilter ? `from=${encodeURIComponent(dateFilter)}` : ""}${dateFilter && toDateFilter ? "&" : ""}${toDateFilter ? `to=${encodeURIComponent(toDateFilter)}` : ""}` : ""}`}><Download size={14} /> Export CSV</a></div></div>
-          {error && <div className="admin-error" role="alert">{error}{mfaRequired ? <Link href="/admin/accounts">Set up MFA</Link> : !authorized && <Link href="/login">Sign in</Link>}</div>}
+          {error && (
+            <div className="admin-error" role="alert">
+              {error}
+              {mfaRequired ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setMfaRequired(true)}
+                    style={{
+                      marginLeft: "8px",
+                      fontWeight: 700,
+                      textDecoration: "underline",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "inherit",
+                    }}
+                  >
+                    Enter MFA code
+                  </button>
+                  <Link href="/admin/accounts" style={{ marginLeft: "12px" }}>
+                    Configure MFA
+                  </Link>
+                </>
+              ) : (
+                !authorized && <Link href="/login">Sign in</Link>
+              )}
+            </div>
+          )}
           {loading ? <div className="admin-loading"><LoaderCircle size={18} className="loading-icon" /> Loading reports</div> : authorized && <div className="table-scroll"><table className="review-table"><thead><tr><th>AREA / SUBMITTED</th><th>OBSERVATION</th><th>NOTE</th><th>REVIEW</th><th>ACTION</th></tr></thead><tbody>
             {visibleReports.map((report) => {
               const area = report.areas?.[0];
@@ -142,6 +171,15 @@ function AdminPageInner() {
         <p className="admin-footnote"><ShieldCheck size={14} /> Every verify or dismiss action is stored with the administrator identity and timestamp.</p>
         <section className="review-panel analytics-panel"><div className="review-toolbar"><div><span className="panel-kicker">HISTORICAL SIGNALS</span><h2>Area trends</h2></div><span className="review-filter">30-day frequency · all-time restoration average</span></div><div className="table-scroll"><table className="review-table"><thead><tr><th>AREA</th><th>OUTAGES · 30 DAYS</th><th>ACTIVE</th><th>ALL-TIME OUTAGES</th><th>AVG RESTORATION</th></tr></thead><tbody>{analytics.map((item) => <tr key={item.area_id}><td><strong>{item.area_name}</strong><small>{item.city}</small></td><td>{item.outages_last_30_days}</td><td>{item.active_outages}</td><td>{item.total_outages}</td><td>{item.average_restoration_minutes == null ? "—" : `${Math.round(item.average_restoration_minutes)} min`}</td></tr>)}{analytics.length === 0 && <tr><td colSpan={5} className="no-reports">Historical metrics will appear as outages are recorded.</td></tr>}</tbody></table></div></section>
       </div>
+      <AdminMfaModal
+        isOpen={mfaRequired}
+        onSuccess={() => {
+          setMfaRequired(false);
+          setError("");
+          void loadReports();
+        }}
+        onCancel={() => setMfaRequired(false)}
+      />
     </main>
   );
 }

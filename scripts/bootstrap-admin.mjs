@@ -27,7 +27,11 @@ let target = null;
 for (let page = 1; page <= 100; page += 1) {
   const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
   if (error) {
-    console.error("Supabase could not look up accounts. Check the URL and service-role key.");
+    console.error("Supabase account lookup failed.", {
+      status: error.status ?? null,
+      code: error.code ?? null,
+      message: error.message,
+    });
     process.exit(1);
   }
   target = data.users.find((user) => user.email?.toLowerCase() === targetEmail) ?? null;

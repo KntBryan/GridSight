@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { AdminHeader } from "@/components/admin/admin-header";
+import { AdminMfaModal } from "@/components/admin/admin-mfa-modal";
 import { ThemeProvider, useTheme } from "@/components/preview/preview-theme";
 import { SURIGAO_CITY_BARANGAYS } from "@/lib/surigao-city-barangays";
 
@@ -311,7 +312,26 @@ function AdminUpdatesInner() {
           <div className="admin-error mb-5" role="alert">
             {error}
             {mfaRequired ? (
-              <Link href="/admin/accounts">Set up MFA</Link>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMfaRequired(true)}
+                  style={{
+                    marginLeft: "8px",
+                    fontWeight: 700,
+                    textDecoration: "underline",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "inherit",
+                  }}
+                >
+                  Enter MFA code
+                </button>
+                <Link href="/admin/accounts" style={{ marginLeft: "12px" }}>
+                  Configure MFA
+                </Link>
+              </>
             ) : (
               !authorized && <Link href="/login">Sign in</Link>
             )}
@@ -763,6 +783,16 @@ function AdminUpdatesInner() {
           </div>
         </div>
       )}
+      {/* Inline Two-factor authentication modal */}
+      <AdminMfaModal
+        isOpen={mfaRequired}
+        onSuccess={() => {
+          setMfaRequired(false);
+          setError("");
+          void loadData();
+        }}
+        onCancel={() => setMfaRequired(false)}
+      />
     </main>
   );
 }
@@ -774,3 +804,4 @@ export default function AdminUpdatesPage() {
     </ThemeProvider>
   );
 }
+
