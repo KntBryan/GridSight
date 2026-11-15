@@ -306,9 +306,10 @@ function AdminPageInner() {
 
   return (
     <div
-      className={`min-h-screen transition-colors ${
+      className={`admin-page min-h-screen transition-colors ${
         isDark ? "bg-[#061120] text-white" : "bg-[#f8fafc] text-slate-900"
       }`}
+      data-admin-theme={theme}
     >
       <AdminHeader activePage="desk" />
 
