@@ -199,7 +199,21 @@ function AccountPageInner() {
     setMessage("");
     try {
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const isIOS =
+        typeof navigator !== "undefined" &&
+        (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+      const isStandalone =
+        typeof window !== "undefined" &&
+        (window.matchMedia("(display-mode: standalone)").matches ||
+          Boolean((navigator as unknown as { standalone?: boolean }).standalone));
+
       if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        if (isIOS && !isStandalone) {
+          throw new Error(
+            "On iPhone, push alerts require adding GridSight to your Home Screen: tap the Share button (⬆), select 'Add to Home Screen', then open GridSight from your Home Screen."
+          );
+        }
         throw new Error("This browser does not support web push notifications.");
       }
       if (!vapidKey?.trim()) {
@@ -241,6 +255,41 @@ function AccountPageInner() {
       setMessage("Push notifications enabled on this device.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Push notifications could not be enabled. Please try again.");
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function disablePush() {
+    setPushBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        throw new Error("This browser does not support web push notifications.");
+      }
+
+      const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+      const subscription = await registration?.pushManager.getSubscription();
+
+      if (subscription) {
+        // Delete subscription from backend
+        try {
+          await fetch(`/api/push-subscription?endpoint=${encodeURIComponent(subscription.endpoint)}`, {
+            method: "DELETE",
+          });
+        } catch {
+          // Continue unsubscription even if backend call fails
+        }
+
+        // Unsubscribe locally from browser PushManager
+        await subscription.unsubscribe().catch(() => undefined);
+      }
+
+      setPushEnabled(false);
+      setMessage("Push notifications disabled on this device.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Push notifications could not be disabled. Please try again.");
     } finally {
       setPushBusy(false);
     }
@@ -688,22 +737,39 @@ function AccountPageInner() {
                       Direct browser notifications.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void enablePush()}
-                    disabled={pushEnabled || pushBusy}
-                    className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
-                      pushEnabled
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                        : pushBusy
-                        ? "bg-slate-400/20 text-slate-500"
-                        : isDark
-                        ? "bg-white/10 text-white hover:bg-white/20"
-                        : "bg-slate-900 text-white hover:bg-slate-800"
-                    }`}
-                  >
-                    {pushEnabled ? "Enabled" : pushBusy ? "Enabling…" : "Enable"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {pushEnabled && (
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold ${
+                          isDark
+                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        }`}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Active
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void (pushEnabled ? disablePush() : enablePush())}
+                      disabled={pushBusy}
+                      title={pushEnabled ? "Click to disable push notifications on this device" : "Click to enable push notifications"}
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
+                        pushBusy
+                          ? "bg-slate-400/20 text-slate-500 cursor-wait"
+                          : pushEnabled
+                          ? isDark
+                            ? "border border-white/15 bg-white/[0.06] text-white/70 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/30"
+                            : "border border-slate-300 bg-white text-slate-700 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
+                          : isDark
+                          ? "bg-white/10 text-white hover:bg-white/20"
+                          : "bg-slate-900 text-white hover:bg-slate-800"
+                      }`}
+                    >
+                      {pushBusy ? (pushEnabled ? "Disabling…" : "Enabling…") : pushEnabled ? "Disable" : "Enable"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
