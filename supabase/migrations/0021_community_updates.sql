@@ -1,4 +1,6 @@
-create table if not exists public.community_updates (
+drop table if exists public.community_updates cascade;
+
+create table public.community_updates (
   id uuid primary key default gen_random_uuid(),
   title text not null check (char_length(trim(title)) >= 3),
   message text not null check (char_length(trim(message)) >= 3),
