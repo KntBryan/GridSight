@@ -113,39 +113,19 @@ function AdminAccountsPageInner() {
     setError("");
     try {
       const supabase = createSupabaseBrowserClient();
+      const cleanCode = code.trim().replace(/\s+/g, "");
       const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: setup.factorId });
       if (challengeError) throw challengeError;
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: setup.factorId,
         challengeId: challenge.id,
-        code: code.trim(),
+        code: cleanCode,
       });
       if (verifyError) throw verifyError;
 
-      if (setup.step === "verify-existing") {
-        const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
-        if (factorsError) throw factorsError;
-        for (const factor of factors.totp) {
-          if (factor.status !== "verified") {
-            const { error: removeError } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
-            if (removeError) throw removeError;
-          }
-        }
-        let friendlyName = "GridSight admin phone";
-        for (let suffix = 2; factors.totp.some((factor) => factor.friendly_name === friendlyName); suffix++) {
-          friendlyName = `GridSight admin phone ${suffix}`;
-        }
-        const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName });
-        if (enrollError) throw enrollError;
-        setSetup({ step: "enroll", factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret });
-        setCode("");
-        setMessage("Authenticator verified. Add this phone as an authenticator using the QR code or setup key below.");
-        return;
-      }
-
       setSetup(null);
       setCode("");
-      setMessage("New authenticator verified. Administrator account management is now available.");
+      setMessage("Authenticator verified. Administrator account management is now available.");
       await load();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "MFA setup could not be completed.");

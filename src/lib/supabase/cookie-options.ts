@@ -13,3 +13,4 @@ export const authCookieOptions: CookieOptionsWithName = {
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
 };
+
