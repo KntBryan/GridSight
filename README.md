@@ -35,6 +35,7 @@ Deploy the functions with the Supabase CLI, then set function secrets:
 - `send-notifications`: `PUSH_CRON_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
 - Both functions also require Supabase's `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets.
 - Set the matching public key as `NEXT_PUBLIC_VAPID_PUBLIC_KEY` for the browser's push subscription flow.
+- Generate one VAPID key pair and use that same pair everywhere: set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in the app's local or hosting environment, and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` as Supabase Edge Function secrets. Use a `mailto:` contact address for the subject. Never expose or commit the private key. Restart/redeploy the app after setting the public key, then deploy `send-notifications` and configure its scheduled invocation.
 - Migration `0018_push_delivery_queue.sql` adds atomic notification claims and retries failed push delivery up to five times with backoff; apply it before deploying the updated `send-notifications` function.
 
 Schedule `cluster-reports` to run every minute (or invoke it from a database webhook on new report inserts for lower latency). Schedule `send-notifications` every minute. Both endpoints require a POST request with the matching `x-cron-secret` header. Generate VAPID keys before enabling web push.
@@ -64,6 +65,12 @@ The script requires an existing profile with confirmed email, writes an audit en
 Sign in as an administrator with a confirmed email, enroll and verify a time-based authenticator at `/admin/accounts`, then use that page to invite staff or promote/demote accounts. Invitations start with the regular `user` role; promote only after the invitee confirms their email. The database function re-checks the actor's current role and AAL2 session, audits role changes transactionally, and prevents demoting the last administrator. Invitation delivery uses Supabase Auth and is separate from the database transaction; if the API reports that an email may have been sent but its audit record failed, do not retry blindly—reconcile the account/audit with another administrator.
 
 Enable TOTP MFA in Supabase Auth (Authentication → Multi-Factor Authentication) and require AAL2 for administrator operations. The account-management API enforces the JWT AAL2 claim; enrollments must be verified before an account action is accepted. Set `NEXT_PUBLIC_APP_URL` to the canonical HTTPS app URL and allow its `/login` URL in Supabase Auth redirect URLs for invitation acceptance. Upstash rate limiting is applied to account mutations when both Upstash REST settings are configured; configure them for hosted deployments.
+
+### Session persistence
+
+The root `middleware.ts` refreshes Supabase sessions and writes updated auth cookies on incoming app and API requests. After deploying it, check your Supabase project's Authentication → Settings → Sessions page. Keep the access-token lifetime at its default unless you have a specific reason to change it, and check that time-boxed session or inactivity limits are not set so short that they force frequent sign-ins. Session-lifetime controls may depend on your Supabase plan; do not weaken administrator protections just to avoid reauthentication.
+
+To verify session persistence, sign in, use the app, then revisit or reload it after the access token would normally need refreshing. Confirm you remain signed in and that administrator actions still require the appropriate MFA assurance. Also test on the canonical HTTPS hostname; changing between hostnames or clearing site cookies can create a separate session.
 
 The service-role key remains server-only. RLS limits audit visibility to administrators; role updates are performed by an authenticated, MFA-gated database function, while the first-admin function is executable only by Supabase's `service_role`.
 

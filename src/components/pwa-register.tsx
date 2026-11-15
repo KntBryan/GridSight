@@ -9,9 +9,13 @@ export function PwaRegister() {
     if (process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register("/sw.js").catch(() => undefined);
     } else {
-      // In development, unregister any active service worker and clear runtime caches to avoid hydration desync
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => registration.unregister());
+      void navigator.serviceWorker.getRegistrations().then(async (registrations) => {
+        for (const registration of registrations) {
+          const subscription = await registration.pushManager.getSubscription();
+          if (!subscription) await registration.unregister();
+        }
+      }).catch((error: unknown) => {
+        console.error("Could not clean up development service workers:", error);
       });
       if ("caches" in window) {
         caches.keys().then((keys) => {

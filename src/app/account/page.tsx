@@ -43,6 +43,7 @@ function AccountPageInner() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
 
   const loadAccount = useCallback(async () => {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -89,6 +90,24 @@ function AccountPageInner() {
   useEffect(() => {
     void loadAccount();
   }, [loadAccount]);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+    let active = true;
+    void navigator.serviceWorker.getRegistration("/sw.js")
+      .then((registration) => registration?.pushManager.getSubscription())
+      .then((subscription) => {
+        if (active) setPushEnabled(Boolean(subscription));
+      })
+      .catch((caught: unknown) => {
+        console.error("Could not check push notification status:", caught);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -175,34 +194,56 @@ function AccountPageInner() {
   }
 
   async function enablePush() {
-    if (!("Notification" in window) || !("serviceWorker" in navigator) || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
-      setError("Push notifications are not configured for this deployment.");
-      return;
+    setPushBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        throw new Error("This browser does not support web push notifications.");
+      }
+      if (!vapidKey?.trim()) {
+        throw new Error("Web push is not configured: the deployment is missing NEXT_PUBLIC_VAPID_PUBLIC_KEY.");
+      }
+      if (!window.isSecureContext) {
+        throw new Error("Push notifications require HTTPS.");
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        throw new Error("Allow notifications in your browser settings to enable alerts.");
+      }
+
+      await navigator.serviceWorker.register("/sw.js");
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        const key = vapidKey.replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = atob(key.padEnd(Math.ceil(key.length / 4) * 4, "="));
+        const applicationServerKey = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+      }
+
+      const response = await fetch("/api/push-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subscription),
+      });
+      const result: { error?: string } = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Push subscription could not be saved.");
+      }
+
+      setPushEnabled(true);
+      setMessage("Push notifications enabled on this device.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Push notifications could not be enabled. Please try again.");
+    } finally {
+      setPushBusy(false);
     }
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      setError("Allow notifications in your browser settings to enable alerts.");
-      return;
-    }
-    const registration = await navigator.serviceWorker.ready;
-    const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY.replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = atob(key.padEnd(Math.ceil(key.length / 4) * 4, "="));
-    const applicationServerKey = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey,
-    });
-    const response = await fetch("/api/push-subscription", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subscription),
-    });
-    if (!response.ok) {
-      setError("Push subscription could not be saved.");
-      return;
-    }
-    setPushEnabled(true);
-    setMessage("Push notifications enabled on this device.");
   }
 
   async function signOut() {
@@ -649,17 +690,19 @@ function AccountPageInner() {
                   </div>
                   <button
                     type="button"
-                    onClick={enablePush}
-                    disabled={pushEnabled}
+                    onClick={() => void enablePush()}
+                    disabled={pushEnabled || pushBusy}
                     className={`rounded-full px-3 py-1 text-[11px] font-semibold transition ${
                       pushEnabled
                         ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : pushBusy
+                        ? "bg-slate-400/20 text-slate-500"
                         : isDark
                         ? "bg-white/10 text-white hover:bg-white/20"
                         : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
-                    {pushEnabled ? "Enabled" : "Enable"}
+                    {pushEnabled ? "Enabled" : pushBusy ? "Enabling…" : "Enable"}
                   </button>
                 </div>
               </div>
