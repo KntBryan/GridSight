@@ -187,34 +187,37 @@ function ReportsPageInner() {
             : "border-slate-200 bg-white/90 text-slate-900 shadow-sm"
         }`}
       >
-        <div className="mx-auto flex h-[70px] w-full max-w-[1240px] items-center justify-between px-5 sm:px-8">
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex h-14 sm:h-[70px] w-full max-w-[1240px] items-center justify-between px-3.5 sm:px-8">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
               href="/"
-              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12.5px] font-semibold transition ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] sm:text-[12.5px] font-semibold whitespace-nowrap transition active:scale-95 shrink-0 ${
                 isDark
                   ? "border-white/15 bg-white/[0.06] text-white/80 hover:bg-white/10 hover:text-white"
                   : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-sm"
               }`}
             >
               <ArrowLeft size={14} />
-              <span>Back to Map</span>
+              <span className="hidden sm:inline">Back to </span>
+              <span>Map</span>
             </Link>
 
-            <div className="flex items-center gap-2">
-              <div className="grid h-[28px] w-[28px] place-items-center rounded-lg bg-[#0d6edc] text-white">
-                <Zap size={15} fill="currentColor" />
+            <Link href="/" className="flex items-center gap-2 min-w-0 text-inherit no-underline">
+              <div className="grid h-7 w-7 sm:h-[28px] sm:w-[28px] shrink-0 place-items-center rounded-lg bg-[#0d6edc] text-white shadow-xs">
+                <Zap size={14} fill="currentColor" />
               </div>
-              <span className="font-heading text-[15px] font-bold">GridSight</span>
-            </div>
+              <span className="font-heading text-[14.5px] sm:text-[15px] font-bold tracking-tight truncate">
+                GridSight
+              </span>
+            </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <ThemeToggle />
             <button
               type="button"
               onClick={() => setReportModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-[#0d6edc] px-4 py-2 text-[12.5px] font-semibold text-white shadow-[0_4px_16px_rgba(13,110,220,0.35)] transition hover:bg-[#0b5ec0]"
+              className="hidden sm:inline-flex items-center gap-2 rounded-full bg-[#0d6edc] px-4 py-2 text-[12.5px] font-semibold text-white shadow-[0_4px_16px_rgba(13,110,220,0.35)] transition hover:bg-[#0b5ec0]"
             >
               <Plus size={14} />
               <span>New report</span>
@@ -224,7 +227,7 @@ function ReportsPageInner() {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto w-full max-w-[1240px] px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-8 sm:py-8">
         {/* Page Heading - Base44 Style */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
