@@ -169,7 +169,49 @@ function AdminAccountsPageInner() {
             </section>
             <section className="review-panel">
               <div className="review-toolbar"><div><span className="panel-kicker">CURRENT ACCESS</span><h2>Accounts</h2></div></div>
-              <div className="table-scroll"><table className="review-table"><thead><tr><th>NAME / EMAIL</th><th>ROLE</th><th>CREATED</th><th>ACTION</th></tr></thead><tbody>
+              
+              {/* Mobile View: Clean touch cards for staff accounts */}
+              <div className="block sm:hidden divide-y divide-slate-100 dark:divide-white/10">
+                {accounts.map((account) => (
+                  <div key={account.id} className="p-3.5 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <strong className="block text-[13.5px] truncate">{account.name || "Unnamed account"}</strong>
+                        <small className="block text-[11.5px] opacity-70 truncate">{account.email}</small>
+                      </div>
+                      <span className={`review-state shrink-0 ${account.role === "admin" ? "review-verified" : "review-pending"}`}>
+                        {account.role}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] opacity-50">
+                        {new Date(account.created_at).toLocaleDateString()}
+                      </span>
+                      {account.role === "admin" ? (
+                        <button
+                          className="account-row-button min-h-[38px] px-3 font-semibold text-rose-500 hover:text-rose-600"
+                          disabled={busy}
+                          onClick={() => window.confirm(`Demote ${account.email} to a regular user?`) && void submit("demote", account.id)}
+                        >
+                          Demote
+                        </button>
+                      ) : (
+                        <button
+                          className="account-row-button min-h-[38px] px-3 font-semibold text-blue-600 hover:text-blue-700"
+                          disabled={busy}
+                          onClick={() => window.confirm(`Promote ${account.email} to administrator?`) && void submit("promote", account.id)}
+                        >
+                          Promote
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {accounts.length === 0 && <p className="p-4 text-center text-[12px] opacity-60">No accounts available.</p>}
+              </div>
+
+              {/* Desktop View: Preserved Exact Table */}
+              <div className="table-scroll hidden sm:block"><table className="review-table"><thead><tr><th>NAME / EMAIL</th><th>ROLE</th><th>CREATED</th><th>ACTION</th></tr></thead><tbody>
                 {accounts.map((account) => <tr key={account.id}>
                   <td><strong>{account.name || "Unnamed account"}</strong><small>{account.email}</small></td>
                   <td><span className={`review-state ${account.role === "admin" ? "review-verified" : "review-pending"}`}>{account.role}</span></td>
@@ -184,7 +226,27 @@ function AdminAccountsPageInner() {
             </section>
             <section className="review-panel">
               <div className="review-toolbar"><div><span className="panel-kicker">AUDIT TRAIL</span><h2>Recent account actions</h2></div></div>
-              <div className="table-scroll"><table className="review-table"><thead><tr><th>ACTION</th><th>ACTOR</th><th>TARGET</th><th>TIME</th></tr></thead><tbody>
+
+              {/* Mobile View: Audit Cards */}
+              <div className="block sm:hidden divide-y divide-slate-100 dark:divide-white/10">
+                {audit.map((entry) => (
+                  <div key={entry.id} className="p-3 text-[12px] space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="review-state review-verified">{entry.action}</span>
+                      <span className="text-[10.5px] opacity-50">{new Date(entry.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="text-[11px] opacity-75">
+                      <span>By: {entry.actor_label ?? (entry.actor_id ? `${entry.actor_id.slice(0, 8)}…` : "Unknown")}</span>
+                      <span className="mx-1">→</span>
+                      <span>Target: {entry.target_id ? `${entry.target_id.slice(0, 8)}…` : "Deleted account"}</span>
+                    </div>
+                  </div>
+                ))}
+                {audit.length === 0 && <p className="p-4 text-center text-[12px] opacity-60">No account actions recorded.</p>}
+              </div>
+
+              {/* Desktop View: Preserved Exact Table */}
+              <div className="table-scroll hidden sm:block"><table className="review-table"><thead><tr><th>ACTION</th><th>ACTOR</th><th>TARGET</th><th>TIME</th></tr></thead><tbody>
                 {audit.map((entry) => <tr key={entry.id}><td><span className="review-state review-verified">{entry.action}</span></td><td>{entry.actor_label ?? (entry.actor_id ? `${entry.actor_id.slice(0, 8)}…` : "Unknown")}</td><td>{entry.target_id ? `${entry.target_id.slice(0, 8)}…` : "Deleted account"}</td><td>{new Date(entry.created_at).toLocaleString()}</td></tr>)}
                 {audit.length === 0 && <tr><td colSpan={4} className="no-reports">No account actions recorded.</td></tr>}
               </tbody></table></div>

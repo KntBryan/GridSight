@@ -41,21 +41,21 @@ export function PreviewMapView({ outages, onOpenReport }: PreviewMapViewProps) {
   const openOutages = outages.filter((o) => o.status !== "restored");
 
   return (
-    <div className={`mx-auto max-w-[1240px] px-5 py-8 sm:px-8 sm:py-12 transition-colors ${
+    <div className={`mx-auto max-w-[1240px] px-4 py-5 sm:px-8 sm:py-12 transition-colors ${
       isDark ? "text-white" : "text-slate-900"
     }`}>
       {/* Page Header */}
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end mb-7">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-6 sm:mb-7">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">
+          <span className="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">
             Live outage map
           </span>
-          <h1 className={`mt-2 font-heading text-[28px] font-extrabold leading-[1.15] sm:text-[34px] ${
+          <h1 className={`mt-1.5 font-heading text-[24px] sm:text-[34px] font-extrabold leading-[1.15] ${
             isDark ? "text-white" : "text-slate-900"
           }`}>
             Where the power is out
           </h1>
-          <p className={`mt-2 text-[14px] leading-relaxed max-w-xl ${
+          <p className={`mt-1.5 text-[13px] sm:text-[14px] leading-relaxed max-w-xl ${
             isDark ? "text-white/60" : "text-slate-600"
           }`}>
             Pins follow the barangays with reports this week. A pin shows the outage status city staff have set, not an isolated report.
@@ -65,7 +65,7 @@ export function PreviewMapView({ outages, onOpenReport }: PreviewMapViewProps) {
         <button
           type="button"
           onClick={onOpenReport}
-          className="inline-flex items-center gap-2 rounded-full bg-[#0d6edc] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_25px_-10px_rgba(13,110,220,0.8)] transition hover:bg-[#0b5ec0] self-start sm:self-auto"
+          className="hidden md:inline-flex items-center gap-2 rounded-full bg-[#0d6edc] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_25px_-10px_rgba(13,110,220,0.8)] transition hover:bg-[#0b5ec0] self-start sm:self-auto"
         >
           <Zap size={15} strokeWidth={2.4} />
           <span>Report an outage</span>

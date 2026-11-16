@@ -216,7 +216,7 @@ function PreviewPageInner() {
       />
 
       {/* Active View Container */}
-      <main>
+      <main className="pb-24 md:pb-0">
         {visibleTab === "home" && (
           <PreviewLanding
             onGoToMap={() => selectTab("map")}

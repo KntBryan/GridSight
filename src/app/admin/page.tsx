@@ -111,6 +111,7 @@ function AdminPageInner() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"pending" | "all">("pending");
+  const [mobileSection, setMobileSection] = useState<"queue" | "outages" | "analytics">("queue");
   const [busyId, setBusyId] = useState("");
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
 
@@ -318,18 +319,18 @@ function AdminPageInner() {
     >
       <AdminHeader activePage="desk" />
 
-      <main className="mx-auto w-full max-w-[1240px] px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-[1240px] px-3.5 py-5 sm:px-8 sm:py-8">
         {/* Workspace Page Header */}
-        <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-5 sm:mb-7 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">
+            <p className="mb-1 text-[10.5px] sm:text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-600 dark:text-blue-400">
               City operations
             </p>
-            <h1 className="font-heading text-[26px] font-extrabold leading-tight tracking-tight sm:text-[32px]">
+            <h1 className="font-heading text-[22px] sm:text-[32px] font-extrabold leading-tight tracking-tight">
               Operations workspace
             </h1>
             <p
-              className={`mt-1.5 max-w-2xl text-[13.5px] leading-relaxed ${
+              className={`mt-1 max-w-2xl text-[12.5px] sm:text-[13.5px] leading-relaxed ${
                 isDark ? "text-white/60" : "text-slate-600"
               }`}
             >
@@ -337,9 +338,9 @@ function AdminPageInner() {
               administrators see this workspace.
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-semibold shadow-sm transition ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-[11.5px] font-semibold shadow-sm transition ${
                 isDark ? "border-white/10 bg-white/5 text-white" : "border-slate-200 bg-white text-slate-800"
               }`}
             >
@@ -350,7 +351,7 @@ function AdminPageInner() {
               type="button"
               onClick={() => void loadReports(true)}
               disabled={refreshing}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-semibold shadow-sm transition ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-[11.5px] font-semibold shadow-sm transition active:scale-95 ${
                 isDark
                   ? "border-white/10 bg-white/5 text-white hover:border-blue-400 hover:text-blue-400"
                   : "border-slate-200 bg-white text-slate-800 hover:border-blue-500 hover:text-blue-600"
@@ -405,94 +406,143 @@ function AdminPageInner() {
           </div>
         ) : !authorized ? null : (
           <>
-            {/* 4 Elevated Stat Cards */}
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {/* 4 Elevated Stat Cards - 2x2 on mobile, 4 columns on large */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {/* Card 1: Active outages */}
               <div
-                className={`rounded-2xl border p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
+                className={`rounded-2xl border p-3.5 sm:p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
                   isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
                 }`}
               >
                 <div className="flex items-start justify-between">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                    <Zap className="h-[18px] w-[18px]" strokeWidth={2} />
+                  <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                    <Zap className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2} />
                   </span>
                 </div>
-                <p className="mt-4 font-heading text-[30px] font-extrabold leading-none tracking-tight">
+                <p className="mt-2.5 sm:mt-4 font-heading text-[22px] sm:text-[30px] font-extrabold leading-none tracking-tight">
                   {activeOutagesCount}
                 </p>
-                <p className="mt-2 text-[13px] font-semibold">Active outages</p>
-                <p className={`mt-0.5 text-[11.5px] ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                <p className="mt-1.5 sm:mt-2 text-[12px] sm:text-[13px] font-semibold truncate">Active outages</p>
+                <p className={`mt-0.5 text-[10.5px] sm:text-[11.5px] truncate ${isDark ? "text-white/50" : "text-slate-500"}`}>
                   Power confirmed down
                 </p>
               </div>
 
               {/* Card 2: Checking */}
               <div
-                className={`rounded-2xl border p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
+                className={`rounded-2xl border p-3.5 sm:p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
                   isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
                 }`}
               >
                 <div className="flex items-start justify-between">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    <Activity className="h-[18px] w-[18px]" strokeWidth={2} />
+                  <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Activity className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2} />
                   </span>
                 </div>
-                <p className="mt-4 font-heading text-[30px] font-extrabold leading-none tracking-tight">
+                <p className="mt-2.5 sm:mt-4 font-heading text-[22px] sm:text-[30px] font-extrabold leading-none tracking-tight">
                   {checkingOutagesCount}
                 </p>
-                <p className="mt-2 text-[13px] font-semibold">Checking</p>
-                <p className={`mt-0.5 text-[11.5px] ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                <p className="mt-1.5 sm:mt-2 text-[12px] sm:text-[13px] font-semibold truncate">Checking</p>
+                <p className={`mt-0.5 text-[10.5px] sm:text-[11.5px] truncate ${isDark ? "text-white/50" : "text-slate-500"}`}>
                   Not yet confirmed
                 </p>
               </div>
 
               {/* Card 3: Reports to review */}
               <div
-                className={`rounded-2xl border p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
+                className={`rounded-2xl border p-3.5 sm:p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
                   isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
                 }`}
               >
                 <div className="flex items-start justify-between">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                    <ClipboardList className="h-[18px] w-[18px]" strokeWidth={2} />
+                  <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <ClipboardList className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2} />
                   </span>
                 </div>
-                <p className="mt-4 font-heading text-[30px] font-extrabold leading-none tracking-tight">
+                <p className="mt-2.5 sm:mt-4 font-heading text-[22px] sm:text-[30px] font-extrabold leading-none tracking-tight">
                   {pendingReportsCount}
                 </p>
-                <p className="mt-2 text-[13px] font-semibold">Reports to review</p>
-                <p className={`mt-0.5 text-[11.5px] ${isDark ? "text-white/50" : "text-slate-500"}`}>
-                  Waiting for a decision
+                <p className="mt-1.5 sm:mt-2 text-[12px] sm:text-[13px] font-semibold truncate">Needs review</p>
+                <p className={`mt-0.5 text-[10.5px] sm:text-[11.5px] truncate ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                  Waiting for decision
                 </p>
               </div>
 
               {/* Card 4: Restored */}
               <div
-                className={`rounded-2xl border p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
+                className={`rounded-2xl border p-3.5 sm:p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:shadow-md ${
                   isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
                 }`}
               >
                 <div className="flex items-start justify-between">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="h-[18px] w-[18px]" strokeWidth={2} />
+                  <span className="grid h-8 w-8 sm:h-10 sm:w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2} />
                   </span>
                 </div>
-                <p className="mt-4 font-heading text-[30px] font-extrabold leading-none tracking-tight">
+                <p className="mt-2.5 sm:mt-4 font-heading text-[22px] sm:text-[30px] font-extrabold leading-none tracking-tight">
                   {restoredOutagesCount}
                 </p>
-                <p className="mt-2 text-[13px] font-semibold">Restored clusters</p>
-                <p className={`mt-0.5 text-[11.5px] ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                <p className="mt-1.5 sm:mt-2 text-[12px] sm:text-[13px] font-semibold truncate">Restored</p>
+                <p className={`mt-0.5 text-[10.5px] sm:text-[11.5px] truncate ${isDark ? "text-white/50" : "text-slate-500"}`}>
                   Verified power back
                 </p>
               </div>
             </div>
 
+            {/* Mobile Section Switcher (< lg) */}
+            <div
+              className={`mt-5 flex lg:hidden items-center rounded-xl border p-1 text-[12px] font-semibold ${
+                isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-100"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setMobileSection("queue")}
+                className={`flex-1 rounded-lg py-2 text-center transition active:scale-95 ${
+                  mobileSection === "queue"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : isDark
+                    ? "text-white/70 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Queue ({pendingReportsCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileSection("outages")}
+                className={`flex-1 rounded-lg py-2 text-center transition active:scale-95 ${
+                  mobileSection === "outages"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : isDark
+                    ? "text-white/70 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Outages ({openOutages.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileSection("analytics")}
+                className={`flex-1 rounded-lg py-2 text-center transition active:scale-95 ${
+                  mobileSection === "analytics"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : isDark
+                    ? "text-white/70 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Trends
+              </button>
+            </div>
+
             {/* Main Operations Grid */}
-            <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_340px]">
+            <div className="mt-4 sm:mt-6 grid gap-5 lg:grid-cols-[1fr_340px]">
               {/* Left Column: Live report queue */}
               <section
                 className={`overflow-hidden rounded-2xl border shadow-[0_1px_2px_rgba(16,24,40,0.04)] ${
+                  mobileSection === "queue" ? "block" : "hidden lg:block"
+                } ${
                   isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
                 }`}
               >
@@ -593,33 +643,33 @@ function AdminPageInner() {
                               )}
                             </div>
 
-                            <div className="flex shrink-0 items-center gap-2">
+                            <div className="flex shrink-0 items-center gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
                               {report.verification_status === "pending" ? (
                                 <>
                                   <button
                                     type="button"
                                     onClick={() => openReviewModal(report, "verified")}
                                     disabled={busyId === report.id}
-                                    className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-semibold transition ${
+                                    className={`inline-flex h-10 sm:h-8 min-h-[44px] sm:min-h-0 flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-xl border px-3 text-[12.5px] sm:text-[12px] font-semibold transition active:scale-95 ${
                                       isDark
                                         ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                                         : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                     }`}
                                   >
-                                    <Check className="h-3.5 w-3.5" />
+                                    <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                                     Verify
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => openReviewModal(report, "dismissed")}
                                     disabled={busyId === report.id}
-                                    className={`inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-semibold transition ${
+                                    className={`inline-flex h-10 sm:h-8 min-h-[44px] sm:min-h-0 flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-xl border px-3 text-[12.5px] sm:text-[12px] font-semibold transition active:scale-95 ${
                                       isDark
                                         ? "border-white/10 bg-white/5 text-white/70 hover:bg-rose-500/10 hover:text-rose-300"
                                         : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-rose-50 hover:text-rose-700"
                                     }`}
                                   >
-                                    <X className="h-3.5 w-3.5" />
+                                    <X className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                                     Dismiss
                                   </button>
                                 </>
@@ -656,7 +706,7 @@ function AdminPageInner() {
               </section>
 
               {/* Right Column: Quick Actions & Open Outages */}
-              <div className="space-y-5">
+              <div className={`space-y-5 ${mobileSection === "outages" ? "block" : "hidden lg:block"}`}>
                 {/* Quick Actions Card */}
                 <section
                   className={`overflow-hidden rounded-2xl border p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] ${
@@ -757,7 +807,7 @@ function AdminPageInner() {
                                 {(outage.report_count || 0) === 1 ? "" : "s"}
                               </p>
                             </div>
-                            <div className="flex shrink-0 items-center gap-2">
+                            <div className="flex shrink-0 items-center gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
                               <select
                                 aria-label={`Override status for ${outage.area_name}`}
                                 value={overrides[outage.id] ?? outage.status}
@@ -767,7 +817,7 @@ function AdminPageInner() {
                                     [outage.id]: e.target.value as AdminOutage["status"],
                                   }))
                                 }
-                                className={`rounded-lg border px-2.5 py-1 text-[11.5px] font-medium outline-none transition ${
+                                className={`h-10 sm:h-auto min-h-[44px] sm:min-h-0 flex-1 sm:flex-none rounded-lg border px-2.5 py-1 text-[12px] sm:text-[11.5px] font-medium outline-none transition ${
                                   isDark
                                     ? "border-white/15 bg-white/5 text-white focus:border-blue-400"
                                     : "border-slate-300 bg-white text-slate-800 focus:border-blue-500"
@@ -782,7 +832,7 @@ function AdminPageInner() {
                                   type="button"
                                   disabled={busyId === outage.id}
                                   onClick={() => void overrideOutage(outage.id)}
-                                  className="rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                                  className="h-10 sm:h-auto min-h-[44px] sm:min-h-0 rounded-lg bg-blue-600 px-3.5 py-1 text-[12px] sm:text-[11px] font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
                                 >
                                   {busyId === outage.id ? "Saving…" : "Apply"}
                                 </button>
@@ -800,6 +850,8 @@ function AdminPageInner() {
             {/* Bottom Section: Historical Signals & Area Trends */}
             <section
               className={`mt-6 overflow-hidden rounded-2xl border shadow-[0_1px_2px_rgba(16,24,40,0.04)] ${
+                mobileSection === "analytics" ? "block" : "hidden lg:block"
+              } ${
                 isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
               }`}
             >

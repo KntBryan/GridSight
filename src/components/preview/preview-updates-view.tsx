@@ -164,7 +164,7 @@ export function PreviewUpdatesView() {
 
   return (
     <div
-      className={`mx-auto max-w-[1240px] px-5 py-8 sm:px-8 sm:py-12 transition-colors ${
+      className={`mx-auto max-w-[1240px] px-4 py-5 sm:px-8 sm:py-12 transition-colors ${
         isDark ? "text-white" : "text-slate-900"
       }`}
     >

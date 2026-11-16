@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, Zap, ClipboardList, Send, Users } from "lucide-react";
 import { ThemeToggle, useTheme } from "@/components/preview/preview-theme";
 
 type AdminHeaderProps = {
@@ -20,7 +20,10 @@ export function AdminHeader({ activePage }: AdminHeaderProps) {
           : "border-slate-200 bg-white text-slate-900 shadow-sm"
       }`}
     >
-      <div className="mx-auto flex min-h-[70px] w-full max-w-[1240px] flex-wrap items-center justify-between gap-4 px-5 sm:px-8">
+      {/* ========================================================
+          DESKTOP HEADER (>= md / 768px): 100% PRESERVED EXACT UI
+          ======================================================== */}
+      <div className="mx-auto hidden min-h-[70px] w-full max-w-[1240px] items-center justify-between gap-4 px-5 sm:px-8 md:flex">
         <Link href="/" className="flex items-center gap-2.5 text-inherit no-underline">
           <span className="grid h-[34px] w-[34px] place-items-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/30">
             <Zap size={18} fill="currentColor" />
@@ -96,6 +99,99 @@ export function AdminHeader({ activePage }: AdminHeaderProps) {
           <div className="ml-1">
             <ThemeToggle />
           </div>
+        </nav>
+      </div>
+
+      {/* ========================================================
+          MOBILE HEADER (< md / 768px): ADAPTIVE BASE44 ADMIN UI
+          ======================================================== */}
+      <div className="flex flex-col w-full px-3 pt-2.5 pb-2 md:hidden">
+        {/* Top row: Brand + Live Dot + Map Link + Theme Toggle */}
+        <div className="flex items-center justify-between gap-2">
+          <Link href="/admin" className="flex items-center gap-2 min-w-0 text-inherit no-underline">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-600/30">
+              <Zap size={16} fill="currentColor" />
+            </span>
+            <div className="flex flex-col min-w-0 leading-tight">
+              <div className="flex items-center gap-1.5">
+                <span className="font-heading text-[14px] font-extrabold truncate">
+                  Admin Desk
+                </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              </div>
+              <span className={`text-[9px] font-semibold uppercase tracking-wider ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                Operations
+              </span>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Link
+              href="/"
+              className={`inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition active:scale-95 ${
+                isDark
+                  ? "border-white/15 bg-white/5 text-white/90"
+                  : "border-slate-200 bg-slate-50 text-slate-700"
+              }`}
+            >
+              <ArrowLeft size={12} />
+              <span>Map</span>
+            </Link>
+            <ThemeToggle />
+          </div>
+        </div>
+
+        {/* Bottom row: Touch-friendly segmented navigation pills */}
+        <nav
+          className={`mt-2.5 grid grid-cols-3 gap-1 rounded-xl p-1 text-[11.5px] font-semibold border ${
+            isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-100"
+          }`}
+          aria-label="Mobile administrator navigation"
+        >
+          <Link
+            href="/admin"
+            aria-current={activePage === "desk" ? "page" : undefined}
+            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition active:scale-95 ${
+              activePage === "desk"
+                ? "bg-blue-600 text-white shadow-sm"
+                : isDark
+                ? "text-white/70 hover:text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <ClipboardList size={13} />
+            <span>Triage</span>
+          </Link>
+
+          <Link
+            href="/admin/updates"
+            aria-current={activePage === "updates" ? "page" : undefined}
+            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition active:scale-95 ${
+              activePage === "updates"
+                ? "bg-blue-600 text-white shadow-sm"
+                : isDark
+                ? "text-white/70 hover:text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Send size={13} />
+            <span>Updates</span>
+          </Link>
+
+          <Link
+            href="/admin/accounts"
+            aria-current={activePage === "accounts" ? "page" : undefined}
+            className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition active:scale-95 ${
+              activePage === "accounts"
+                ? "bg-blue-600 text-white shadow-sm"
+                : isDark
+                ? "text-white/70 hover:text-white"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Users size={13} />
+            <span>Staff</span>
+          </Link>
         </nav>
       </div>
     </header>

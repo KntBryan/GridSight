@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { ThemeToggle, useTheme } from "./preview-theme";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { MobileHeader } from "./mobile/mobile-header";
+import { MobileBottomNav } from "./mobile/mobile-bottom-nav";
+import { MobileReportFab } from "./mobile/mobile-report-fab";
 
 export type PreviewTab = "home" | "map" | "updates" | "dashboard";
 
@@ -184,9 +187,9 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
 
   return (
     <>
-      {/* Main Base44 Header */}
+      {/* Main Base44 Header (Desktop: md and up) */}
       <header
-        className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-colors ${
+        className={`sticky top-0 z-40 border-b backdrop-blur-xl transition-colors hidden md:block ${
           isDark
             ? "border-white/10 bg-[#061120]/90 text-white"
             : "border-slate-200 bg-white/95 text-slate-900 shadow-sm"
@@ -734,6 +737,23 @@ export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNav
           })}
         </div>
       </header>
+
+      {/* ========================================================
+          MOBILE UI (< md / 768px): ADAPTIVE BASE44 EXPERIENCE
+          ======================================================== */}
+      <MobileHeader
+        user={user}
+        unreadCount={unreadCount}
+        onSignOut={handleSignOut}
+      />
+
+      <MobileBottomNav
+        currentTab={currentTab}
+        onSelectTab={handleTabSelect}
+        isAdmin={Boolean(user?.isAdmin)}
+      />
+
+      <MobileReportFab onClick={onOpenReport} />
     </>
   );
 }

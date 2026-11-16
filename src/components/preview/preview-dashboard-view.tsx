@@ -52,21 +52,21 @@ export function PreviewDashboardView({
   ];
 
   return (
-    <div className={`mx-auto max-w-[1240px] px-5 py-8 sm:px-8 sm:py-12 transition-colors ${
+    <div className={`mx-auto max-w-[1240px] px-4 py-5 sm:px-8 sm:py-12 transition-colors ${
       isDark ? "text-white" : "text-slate-900"
     }`}>
       {/* Header */}
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end mb-8">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end mb-6 sm:mb-8">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">
+          <span className="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-blue-500">
             Surigao City pilot
           </span>
-          <h1 className={`mt-2 font-heading text-[28px] font-extrabold leading-[1.15] sm:text-[34px] ${
+          <h1 className={`mt-1.5 font-heading text-[24px] sm:text-[34px] font-extrabold leading-[1.15] ${
             isDark ? "text-white" : "text-slate-900"
           }`}>
             {greeting}, Resident!
           </h1>
-          <p className={`mt-2 text-[14px] leading-relaxed max-w-xl ${
+          <p className={`mt-1.5 text-[13px] sm:text-[14px] leading-relaxed max-w-xl ${
             isDark ? "text-white/60" : "text-slate-600"
           }`}>
             Here is the power picture right now, and what the city operations staff have verified.
@@ -76,7 +76,7 @@ export function PreviewDashboardView({
         <button
           type="button"
           onClick={onOpenReport}
-          className="inline-flex items-center gap-2 rounded-full bg-[#0d6edc] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_25px_-10px_rgba(13,110,220,0.8)] transition hover:bg-[#0b5ec0] self-start sm:self-auto"
+          className="hidden md:inline-flex items-center gap-2 rounded-full bg-[#0d6edc] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_25px_-10px_rgba(13,110,220,0.8)] transition hover:bg-[#0b5ec0] self-start sm:self-auto"
         >
           <Zap size={15} strokeWidth={2.4} />
           <span>Report an outage</span>
@@ -84,7 +84,7 @@ export function PreviewDashboardView({
       </div>
 
       {/* 3 Metric Stat Cards */}
-      <div className="grid gap-5 sm:grid-cols-3 mb-8">
+      <div className="grid gap-3 sm:gap-5 grid-cols-1 sm:grid-cols-3 mb-6 sm:mb-8">
         {[
           {
             label: "Open Outages",
@@ -113,7 +113,7 @@ export function PreviewDashboardView({
         ].map((card) => (
           <div
             key={card.label}
-            className={`rounded-2xl border p-5 transition-colors ${
+            className={`rounded-2xl border p-4 sm:p-5 transition-colors ${
               isDark ? "border-white/10 bg-[#0b1a2e]" : "border-slate-200 bg-white shadow-sm"
             }`}
           >
@@ -123,8 +123,8 @@ export function PreviewDashboardView({
               <span>{card.label}</span>
               {card.icon}
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className={`font-heading text-[32px] font-extrabold ${
+            <div className="mt-2.5 sm:mt-3 flex items-baseline gap-2">
+              <span className={`font-heading text-[26px] sm:text-[32px] font-extrabold ${
                 isDark ? "text-white" : "text-slate-900"
               }`}>
                 {card.value}

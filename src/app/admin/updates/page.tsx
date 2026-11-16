@@ -141,6 +141,7 @@ function AdminUpdatesInner() {
   const [publishing, setPublishing] = useState(false);
   const [withdrawingUpdate, setWithdrawingUpdate] = useState<CommunityUpdate | null>(null);
   const [withdrawReason, setWithdrawReason] = useState("");
+  const [mobileTab, setMobileTab] = useState<"compose" | "history">("compose");
   const [withdrawing, setWithdrawing] = useState(false);
 
   const barangayNames = useMemo(
@@ -349,14 +350,51 @@ function AdminUpdatesInner() {
             <LoaderCircle size={18} className="loading-icon" /> Loading updates desk…
           </div>
         ) : !authorized ? null : (
-          /* Two-column Base44 Grid */
-          <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-            {/* Left Card: Post a community update */}
-            <section
-              className={`overflow-hidden rounded-2xl border transition shadow-[0_1px_2px_rgba(16,24,40,0.04)] ${
-                isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
+          <>
+            {/* Mobile Tab Switcher (< lg) */}
+            <div
+              className={`mb-4 flex lg:hidden items-center rounded-xl border p-1 text-[12px] font-semibold ${
+                isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-100"
               }`}
             >
+              <button
+                type="button"
+                onClick={() => setMobileTab("compose")}
+                className={`flex-1 rounded-lg py-2 text-center transition active:scale-95 ${
+                  mobileTab === "compose"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : isDark
+                    ? "text-white/70 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Compose Update
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab("history")}
+                className={`flex-1 rounded-lg py-2 text-center transition active:scale-95 ${
+                  mobileTab === "history"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : isDark
+                    ? "text-white/70 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Published ({updates.length})
+              </button>
+            </div>
+
+            {/* Two-column Base44 Grid */}
+            <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+              {/* Left Card: Post a community update */}
+              <section
+                className={`overflow-hidden rounded-2xl border transition shadow-[0_1px_2px_rgba(16,24,40,0.04)] ${
+                  mobileTab === "compose" ? "block" : "hidden lg:block"
+                } ${
+                  isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
+                }`}
+              >
               <header className={`border-b px-5 py-4 ${isDark ? "border-white/10" : "border-slate-200"}`}>
                 <h2 className="font-heading text-[16px] font-bold">Post a community update</h2>
                 <p className={`mt-0.5 text-[12.5px] ${isDark ? "text-white/50" : "text-slate-500"}`}>
@@ -543,6 +581,8 @@ function AdminUpdatesInner() {
             {/* Right Card: Published updates */}
             <section
               className={`overflow-hidden rounded-2xl border transition shadow-[0_1px_2px_rgba(16,24,40,0.04)] ${
+                mobileTab === "history" ? "block" : "hidden lg:block"
+              } ${
                 isDark ? "border-white/10 bg-[#0f1e30]" : "border-slate-200 bg-white"
               }`}
             >
@@ -616,6 +656,7 @@ function AdminUpdatesInner() {
               </div>
             </section>
           </div>
+          </>
         )}
       </div>
 
