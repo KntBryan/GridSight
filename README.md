@@ -1,13 +1,41 @@
 # GridSight
 
-GridSight is a community-powered outage map built with Next.js 15, TypeScript, Tailwind CSS, Supabase/PostgreSQL + PostGIS, and a small PWA service worker.
+GridSight is a community outage reporting and monitoring system for Surigao City. It combines a public-facing outage map with authenticated reporting, administrator review, notification workflows, and spatial validation against the city's barangay boundaries.
 
-## Run locally
+## Current system overview
 
-Prerequisites: Node.js 20+, npm, and a Supabase project with PostgreSQL/PostGIS.
+The application is built with:
 
-1. Copy `.env.example` to `.env.local` and set the Supabase project URL and anon key.
-2. Install and start the app:
+- Next.js 15 and TypeScript
+- Tailwind CSS for the UI
+- Supabase Auth + PostgreSQL/PostGIS for identity, data storage, RLS, and database functions
+- Leaflet / React Leaflet for the map experience
+- PWA service worker support for browser installability and push handling
+- IndexedDB for queued offline reports
+
+The current implementation supports:
+
+- A responsive home and map experience with protected sections for authenticated users
+- Barangay-based outage reporting with GPS validation inside the selected barangay
+- User report history and status tracking
+- Admin review and moderation of incoming reports
+- Role-based administration with MFA enforcement for sensitive operations
+- Notification storage and push delivery via Supabase Edge functions
+- Offline report queue retry after connectivity returns
+- Session refresh logic via middleware and server-side Supabase cookie handling
+
+The first pilot geography is Surigao City and its 54 barangays. Coordinates are validated against stored barangay polygons; reports that place the GPS pin outside the selected barangay are rejected. Boundary data is intended for local operational use and should be reviewed with the city before being used for official decisions.
+
+## Local development setup
+
+Prerequisites:
+
+- Node.js 20+
+- npm
+- A Supabase project with PostgreSQL/PostGIS enabled
+
+1. Copy `.env.example` to `.env.local` and set the public Supabase values.
+2. Install dependencies and start the app:
 
    ```powershell
    npm install
@@ -15,40 +43,51 @@ Prerequisites: Node.js 20+, npm, and a Supabase project with PostgreSQL/PostGIS.
    ```
 
 3. Open `http://localhost:3000`.
-4. Apply the migrations in numeric order: `0001_gridsight.sql`, `0002_surigaocity_barangays.sql`, the 15 `0003`–`0017` `surigaocity_barangay_data_part_XX.sql` files, `0018_push_delivery_queue.sql`, `0019_admin_account_management.sql`, then `0020_authenticated_outage_access.sql`. Run each file separately in the SQL Editor and wait for success before continuing.
-5. Enable Realtime for `public.outages` in the Supabase dashboard. The outage map is available to signed-in users through `outage_map`; anonymous access is revoked by migration 0020. Reports remain private to their author and admins.
-6. Configure email confirmation and password recovery URLs in Supabase Auth. Add `/login` and `/auth/callback` on each app origin to the allowed redirect URLs.
+4. Apply the SQL migrations in order using the Supabase SQL editor:
 
-The first reporting pilot is Surigao City and its 54 barangays. GPS lookup uses the stored barangay polygons and only resolves coordinates covered by a Surigao City barangay; reports with a GPS pin outside the selected barangay are rejected. Barangay boundaries were filtered from the HDX Philippines Subnational Administrative Boundaries dataset (COD-AB-PHL), sourced from NAMRIA and PSA. Review boundary provenance and updates with the city before relying on it for official decisions.
+   `0001_gridsight.sql`
+   `0002_surigaocity_barangays.sql`
+   the 15 `0003`–`0017` `surigaocity_barangay_data_part_XX.sql` files
+   `0018_push_delivery_queue.sql`
+   `0019_admin_account_management.sql`
+   `0020_authenticated_outage_access.sql`
 
-Without Supabase environment values the public homepage runs in local mode. Accounts, outage-map data, notifications, report history, report submission, and admin review require a configured Supabase project and the migrations above. The map, notification, and report APIs require an authenticated user.
+   Run each migration separately and wait for it to finish before moving to the next one.
 
-## Focused auth tests
+5. Enable Realtime for `public.outages` in the Supabase dashboard.
+6. Configure Supabase Auth redirect URLs for `/login` and `/auth/callback` on each app origin.
 
-Run `npm test` for safe return-navigation checks. After `npm run build`, run `npm run test:auth-api` to start the production server and verify anonymous outage, location, report-history, and report-submission requests are rejected.
+Without the required Supabase values, the public homepage still loads in local mode, but authenticated flows, the map APIs, notifications, report submission, report history, and admin tools require a valid project configuration and the database migrations above.
 
-## Supabase functions
+## Project scripts
 
-Deploy the functions with the Supabase CLI, then set function secrets:
+```powershell
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm test
+npm run test:auth-api
+npm run admin:bootstrap -- "staff@example.com" "Operator name"
+```
 
-- `cluster-reports`: `CLUSTER_CRON_SECRET`
-- `send-notifications`: `PUSH_CRON_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
-- Both functions also require Supabase's `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` secrets.
-- Set the matching public key as `NEXT_PUBLIC_VAPID_PUBLIC_KEY` for the browser's push subscription flow.
-- Generate one VAPID key pair and use that same pair everywhere: set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in the app's local or hosting environment, and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` as Supabase Edge Function secrets. Use a `mailto:` contact address for the subject. Never expose or commit the private key. Restart/redeploy the app after setting the public key, then deploy `send-notifications` and configure its scheduled invocation.
-- Migration `0018_push_delivery_queue.sql` adds atomic notification claims and retries failed push delivery up to five times with backoff; apply it before deploying the updated `send-notifications` function.
+The test commands are focused checks for auth-return flow and protected API behavior. The admin bootstrap script creates the first admin from an existing confirmed profile and should only be run with the service-role key exposed in the current shell.
 
-Schedule `cluster-reports` to run every minute (or invoke it from a database webhook on new report inserts for lower latency). Schedule `send-notifications` every minute. Both endpoints require a POST request with the matching `x-cron-secret` header. Generate VAPID keys before enabling web push.
+## Authentication and access model
 
-The browser service worker caches the app shell and receives push events. Offline reports are kept in IndexedDB and retried after connectivity returns; users must be signed in for the API to accept the queued reports. The route handler enforces file type/size, authentication, and optional Upstash rate limiting. The database RPC applies the five-minute user/area cooldown and idempotency check.
+Supabase Auth handles sign-up, sign-in, email confirmation, and password reset.
 
-## Accounts and roles
+- Each new `profiles` row is created with the default `user` role.
+- Role changes are not exposed during signup or through editable profile fields.
+- Administrators are required to verify MFA before sensitive admin actions are accepted.
+- The app uses middleware to refresh Supabase sessions and keep auth cookies current across requests.
+- Report and outage APIs are authentication-gated and return `401` when a user is not signed in.
 
-Supabase Auth handles email/password registration, login, and password reset. A database trigger creates each `profiles` row with the standard `user` role. Role changes are never available during signup or through editable profile fields.
+## Administrator setup
 
-### First administrator bootstrap
+### Initial admin bootstrap
 
-After applying migration `0019`, register the intended operator at `/register` and confirm their email. In PowerShell, set the project URL and service-role key only in the current shell, then run the first-admin-only script with the exact confirmed email and an operator label:
+After applying migration `0019`, register the intended operator at `/register` and confirm their email.
 
 ```powershell
 $env:NEXT_PUBLIC_SUPABASE_URL = "https://your-project.supabase.co"
@@ -58,26 +97,96 @@ Remove-Item Env:\SUPABASE_SERVICE_ROLE_KEY
 Remove-Item Env:\NEXT_PUBLIC_SUPABASE_URL
 ```
 
-The script requires an existing profile with confirmed email, writes an audit entry, refuses to create another first admin, and is safe to rerun for the already-bootstrapped account. Never place the service-role key in source control or a `NEXT_PUBLIC_` variable. If the operator target is wrong after bootstrap, use the normal admin-management screen after signing in rather than rerunning the bootstrap for a different account.
+The bootstrap script:
 
-### Routine administrator management
+- requires an existing confirmed account
+- writes an audit record
+- refuses to create more than one first admin
+- is safe to rerun for the already-bootstrapped account
 
-Sign in as an administrator with a confirmed email, enroll and verify a time-based authenticator at `/admin/accounts`, then use that page to invite staff or promote/demote accounts. Invitations start with the regular `user` role; promote only after the invitee confirms their email. The database function re-checks the actor's current role and AAL2 session, audits role changes transactionally, and prevents demoting the last administrator. Invitation delivery uses Supabase Auth and is separate from the database transaction; if the API reports that an email may have been sent but its audit record failed, do not retry blindly—reconcile the account/audit with another administrator.
+Never store the service-role key in source control or in a `NEXT_PUBLIC_` environment variable.
 
-Enable TOTP MFA in Supabase Auth (Authentication → Multi-Factor Authentication) and require AAL2 for administrator operations. The account-management API enforces the JWT AAL2 claim; enrollments must be verified before an account action is accepted. Set `NEXT_PUBLIC_APP_URL` to the canonical HTTPS app URL and allow its `/login` URL in Supabase Auth redirect URLs for invitation acceptance. Upstash rate limiting is applied to account mutations when both Upstash REST settings are configured; configure them for hosted deployments.
+### Routine admin management
 
-### Session persistence
+Administrators can sign in and use `/admin/accounts` to:
 
-The root `middleware.ts` refreshes Supabase sessions and writes updated auth cookies on incoming app and API requests. After deploying it, check your Supabase project's Authentication → Settings → Sessions page. Keep the access-token lifetime at its default unless you have a specific reason to change it, and check that time-boxed session or inactivity limits are not set so short that they force frequent sign-ins. Session-lifetime controls may depend on your Supabase plan; do not weaken administrator protections just to avoid reauthentication.
+- enroll and verify TOTP MFA
+- invite staff users
+- promote or demote accounts
+- audit role changes transactionally
 
-To verify session persistence, sign in, use the app, then revisit or reload it after the access token would normally need refreshing. Confirm you remain signed in and that administrator actions still require the appropriate MFA assurance. Also test on the canonical HTTPS hostname; changing between hostnames or clearing site cookies can create a separate session.
+Role changes are gated by the actor's current role and AAL2 status. The system prevents demoting the final administrator and enforces MFA before account actions are accepted.
 
-The service-role key remains server-only. RLS limits audit visibility to administrators; role updates are performed by an authenticated, MFA-gated database function, while the first-admin function is executable only by Supabase's `service_role`.
+Set `NEXT_PUBLIC_APP_URL` to the canonical HTTPS app URL and allow the `/login` callback in Supabase Auth redirect URLs for invitation acceptance.
 
-## Environment
+## Supabase Edge functions and notifications
 
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are public client settings. Keep `SUPABASE_SERVICE_ROLE_KEY`, Upstash tokens, cron secrets, and VAPID private keys server-side only. The report endpoint enables Upstash sliding-window rate limiting when both Upstash REST values are configured; the database cooldown remains active without Upstash.
+Deploy the Supabase functions with the CLI, then set the required secrets:
 
-## Current scope
+- `cluster-reports`: `CLUSTER_CRON_SECRET`
+- `send-notifications`: `PUSH_CRON_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+- both functions require Supabase `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
 
-The repo includes the responsive map/reporting UI, Supabase Auth screens, report and moderation APIs, a spatial schema and clustering RPC, notification storage/push worker, and offline report queue. Before production, expand automated tests, complete area-follow and notification-preference screens, implement outage-status override and historical analytics/export workflows, validate the migration against the target Supabase project, and test push/offline behavior on the actual mobile browsers you support.
+Use one VAPID key pair everywhere:
+
+- set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` for the browser push subscription flow
+- set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` as Supabase Edge Function secrets
+- use a `mailto:` address for the VAPID subject
+- never commit the private key
+
+Suggested schedule:
+
+- `cluster-reports`: every minute
+- `send-notifications`: every minute
+
+Both endpoints require a POST request with the matching `x-cron-secret` header. Migration `0018_push_delivery_queue.sql` adds atomic notification claims and retries failed push delivery up to five times with backoff. Apply it before deploying the updated notification function.
+
+## Report pipeline and validation
+
+The reporting flow includes:
+
+- form validation and content-size checks
+- photo validation for JPEG, PNG, and WebP uploads
+- rate limiting when Upstash settings are configured
+- database cooldown and idempotency checks for repeated report attempts
+- barangay-level GPS validation through the selected area polygon
+- security checks for signed-in users before submission is accepted
+
+Offline reports are queued in IndexedDB and retried when connectivity is restored. Users remain required to be signed in before queued reports are accepted by the API.
+
+## Data model and app behavior
+
+Current app features in the repo include:
+
+- outage map and community updates views
+- authenticated report poster and report history view
+- admin dashboard with reports, outages, analytics, and export actions
+- ability to export admin data from the dashboard API
+- area analytics and outage clustering support through database RPCs
+- notification preference and push subscription work for end users
+
+The app is designed around Surigao City barangay geography, but the structure is extensible to other localities with additional spatial data and migration updates.
+
+## Environment and security notes
+
+Keep these values server-side only:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- Upstash REST tokens
+- cron secrets
+- VAPID private key
+
+Public browser values are:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- `NEXT_PUBLIC_APP_URL`
+
+The service-role key is never meant to be exposed to the browser. RLS continues to protect data, while privileged actions are enforced through authenticated database functions and MFA-gated admin flows.
+
+## Current status
+
+This repository is a working, feature-focused outage reporting system rather than a placeholder scaffold. The current implementation includes the map, reporting flows, admin review tooling, notification push pipeline, offline queueing, and session-management safeguards required for the core Surigao City pilot.
+
+The remaining work is mostly operational and product-level: expand automated coverage, complete any remaining user-facing preference flows, validate the migration set against target deployments, and test push/offline behavior on real mobile browsers before broader rollout.
