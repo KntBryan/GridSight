@@ -3,7 +3,7 @@
 > **Status:** Production-Ready (Surigao City Pilot)  
 > **Version:** 1.0.0  
 > **Target Geography:** City of Surigao, Surigao del Norte, Philippines (54 Barangays)  
-> **Related Documents:** [API.md](API.md) | [README.md](README.md)
+> **Related Documents:** [API.md](API.md) | [README.md](README.md) | [USER_MANUAL.md](USER_MANUAL.md)
 
 ---
 

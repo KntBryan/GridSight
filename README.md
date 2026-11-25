@@ -13,7 +13,7 @@ The application is built with:
 - PWA service worker support for browser installability and push handling
 - IndexedDB for queued offline reports
 
-Comprehensive endpoint schemas, authentication levels, and error codes are documented in [API.md](API.md). System architecture, C4 diagrams, ERDs, and spatial design workflows are documented in [ARCHITECTURE.md](ARCHITECTURE.md).
+Comprehensive endpoint schemas, authentication levels, and error codes are documented in [API.md](API.md). System architecture, C4 diagrams, ERDs, and spatial design workflows are documented in [ARCHITECTURE.md](ARCHITECTURE.md). Complete citizen and dispatcher operating instructions are documented in [USER_MANUAL.md](USER_MANUAL.md).
 
 The current implementation supports:
 
