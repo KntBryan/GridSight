@@ -5,12 +5,27 @@ import Link from "next/link";
 import { type PreviewTab } from "../preview-nav";
 import { useTheme } from "../preview-theme";
 
+/**
+ * Component props for the mobile bottom navigation bar.
+ */
 interface MobileBottomNavProps {
+  /** Currently active navigation tab identifier. */
   currentTab: PreviewTab;
+  /** Callback fired when user selects a tab. */
   onSelectTab: (tab: PreviewTab) => void;
+  /** Whether the authenticated user has administrative privileges (shows Admin Desk instead of My Reports). */
   isAdmin?: boolean;
 }
 
+/**
+ * Mobile-specific fixed bottom navigation bar (< 768px).
+ *
+ * @remarks
+ * Adheres to modern mobile web guidelines:
+ * - Minimum 44px touch targets with active state indicators.
+ * - Respects iOS / Android hardware home bar via `env(safe-area-inset-bottom)`.
+ * - Dynamically surfaces "Admin Desk" for administrators or "My Reports" for citizens.
+ */
 export function MobileBottomNav({
   currentTab,
   onSelectTab,

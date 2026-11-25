@@ -6,17 +6,43 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+/**
+ * Allowed MIME types for user photo uploads.
+ */
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+/**
+ * Extension lookup mapping for validated image MIME types.
+ */
 const extensionByType: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
+
+/**
+ * Maximum permissible request payload size (4.5 MB).
+ */
 const maxRequestBytes = 4.5 * 1024 * 1024;
+
+/**
+ * Maximum permissible single photo upload size (4 MB).
+ */
 const maxPhotoBytes = 4 * 1024 * 1024;
 
+/**
+ * Error thrown when an incoming request exceeds maximum payload size bounds.
+ */
 class RequestTooLargeError extends Error {}
 
+/**
+ * Reads an HTTP request stream up to a strict byte limit to prevent memory exhaustion / DoS attacks.
+ *
+ * @param request - Incoming Next.js HTTP request.
+ * @param maxBytes - Maximum number of allowed bytes.
+ * @returns {Promise<Uint8Array>} Raw bytes of the request body.
+ * @throws {RequestTooLargeError} If the body stream exceeds `maxBytes`.
+ */
 async function readBoundedBody(request: NextRequest, maxBytes: number) {
   const reader = request.body?.getReader();
   if (!reader) return new Uint8Array();
@@ -43,12 +69,25 @@ async function readBoundedBody(request: NextRequest, maxBytes: number) {
   return body;
 }
 
+/**
+ * Safely parses a form data entry into a finite number or null.
+ *
+ * @param value - FormData field value or null.
+ * @returns {number | null} Parsed number, NaN if invalid string, or null if empty.
+ */
 function numberOrNull(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
+/**
+ * Validates file magic numbers / bytes against declared MIME type to prevent extension spoofing.
+ *
+ * @param bytes - First chunk of binary bytes.
+ * @param contentType - Declared MIME content type.
+ * @returns {boolean} True if magic bytes match declared image format.
+ */
 function matchesImageSignature(bytes: Uint8Array, contentType: string) {
   if (contentType === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   if (contentType === "image/png") return [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => bytes[index] === byte);
@@ -56,6 +95,25 @@ function matchesImageSignature(bytes: Uint8Array, contentType: string) {
   return false;
 }
 
+/**
+ * Submits a new citizen power outage observation with optional geotag and photo.
+ *
+ * @param request - Next.js multipart/form-data request.
+ * @returns {Promise<NextResponse>} JSON response with created `reportId` (HTTP 201),
+ * or appropriate validation/rate-limit error (HTTP 400, 401, 413, 429, 500, 503).
+ *
+ * @remarks
+ * Workflow:
+ * 1. Checks payload size and authenticates the user session.
+ * 2. Enforces Upstash sliding-window rate limit (6 reports/hr per user).
+ * 3. Reads bounded body and parses form fields (`areaSlug`, `status`, `notes`, GPS coordinates).
+ * 4. Inspects photo magic bytes for JPEG/PNG/WebP compliance.
+ * 5. Calls database RPC `submit_outage_report`, validating geographic polygon bounds and per-barangay cooldowns.
+ * 6. Uploads photo to Supabase storage bucket `report-photos` under `{user_id}/{report_id}.{ext}`.
+ * 7. Fires non-blocking background cluster re-calculation trigger via `cluster-reports` Edge Function.
+ *
+ * @security Authenticated - Requires active Supabase user session.
+ */
 export async function POST(request: NextRequest) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.json({ error: "Reporting is not configured yet." }, { status: 503 });
@@ -177,6 +235,18 @@ export async function POST(request: NextRequest) {
   }, { status: 201 });
 }
 
+/**
+ * Retrieves the authenticated citizen's personal report history.
+ *
+ * @returns {Promise<NextResponse>} JSON response containing an array of user reports (HTTP 200),
+ * or an error status (HTTP 401, 500, 503).
+ *
+ * @remarks
+ * Orders results by submission timestamp descending, limited to the last 100 entries.
+ * Includes joined area names and cities.
+ *
+ * @security Authenticated - Requires active Supabase user session.
+ */
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.json({ error: "Reporting is not configured yet." }, { status: 503 });

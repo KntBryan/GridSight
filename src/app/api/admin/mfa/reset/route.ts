@@ -7,9 +7,17 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 /**
- * POST /api/admin/mfa/reset
- * Allows an authenticated administrator to clear stale or duplicate TOTP factors
- * so they can cleanly enroll a single authenticator.
+ * Resets all enrolled TOTP Multi-Factor Authentication factors for the calling administrator.
+ *
+ * @returns {Promise<NextResponse>} JSON response indicating number of factors deleted (HTTP 200),
+ * or an error status (HTTP 401, 403, 500).
+ *
+ * @remarks
+ * Allows administrators whose TOTP credentials became desynchronized, orphaned, or duplicated
+ * to wipe their registered auth factors and complete clean enrollment.
+ * Uses the Supabase Auth Admin Service Role API to safely manage factor deletion.
+ *
+ * @security Admin - Requires active administrator session with confirmed email.
  */
 export async function POST() {
   const supabase = await createSupabaseServerClient();

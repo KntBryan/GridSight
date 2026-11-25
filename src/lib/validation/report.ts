@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+/**
+ * Validation schema for citizen outage reports.
+ *
+ * @remarks
+ * Validates:
+ * - `areaSlug`: Kebab-case barangay slug matching registered coverage areas.
+ * - `status`: Power state (`no_power`, `flickering`, or `restored`).
+ * - `notes`: Optional commentary capped at 500 characters.
+ * - `latitude` / `longitude`: Optional WGS84 coordinate pair (enforces mutual presence).
+ * - `requestId`: Optional client-generated UUID for idempotency.
+ */
 export const reportInputSchema = z.object({
   areaSlug: z.string().trim().min(2).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   status: z.enum(["no_power", "flickering", "restored"]),
@@ -12,4 +23,7 @@ export const reportInputSchema = z.object({
   path: ["latitude"],
 });
 
+/**
+ * Inferred TypeScript type for validated citizen outage report inputs.
+ */
 export type ReportInput = z.infer<typeof reportInputSchema>;

@@ -1,3 +1,6 @@
+/**
+ * Represents a client-side queued outage report stored offline in IndexedDB.
+ */
 export type QueuedReport = {
   requestId: string;
   areaSlug: string;
@@ -15,6 +18,11 @@ export type QueuedReport = {
 const databaseName = "gridsight-offline";
 const storeName = "reports";
 
+/**
+ * Opens or initializes the client IndexedDB database for offline report persistence.
+ *
+ * @returns {Promise<IDBDatabase>} Open IndexedDB connection.
+ */
 function openQueue() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(databaseName, 1);
@@ -24,6 +32,12 @@ function openQueue() {
   });
 }
 
+/**
+ * Stores or updates an outage report in the IndexedDB offline queue.
+ *
+ * @param report - Queued report payload including binary photo Blob and retry metadata.
+ * @returns {Promise<void>} Resolves when write transaction completes.
+ */
 export async function queueReport(report: QueuedReport) {
   const database = await openQueue();
   await new Promise<void>((resolve, reject) => {
@@ -35,6 +49,11 @@ export async function queueReport(report: QueuedReport) {
   database.close();
 }
 
+/**
+ * Retrieves all pending offline reports from IndexedDB.
+ *
+ * @returns {Promise<QueuedReport[]>} Array of reports waiting to be synchronized.
+ */
 export async function getQueuedReports() {
   const database = await openQueue();
   const result = await new Promise<QueuedReport[]>((resolve, reject) => {
@@ -46,6 +65,12 @@ export async function getQueuedReports() {
   return result;
 }
 
+/**
+ * Deletes a queued report from IndexedDB after successful network sync or permanent rejection.
+ *
+ * @param requestId - Unique client request UUID of the queued report.
+ * @returns {Promise<void>} Resolves when delete transaction completes.
+ */
 export async function removeQueuedReport(requestId: string) {
   const database = await openQueue();
   await new Promise<void>((resolve, reject) => {

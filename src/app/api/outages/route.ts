@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+/**
+ * Retrieves clustered power outage incidents for the live interactive map.
+ *
+ * @remarks
+ * Queries the `outage_map` view for barangay-level incidents in Surigao City.
+ * Filters for ongoing outages (`unconfirmed` or `active`), plus outages `restored`
+ * within the last 24 hours to provide situational awareness of recent power restorations.
+ *
+ * @security Authenticated - Requires an active Supabase user session (enforced by migration 0020).
+ *
+ * @returns {Promise<NextResponse>} JSON response containing an array of `outages` records (HTTP 200),
+ * or an error message (HTTP 401, 500, or 503).
+ */
 export async function GET() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.json({ error: "Outage map is not configured." }, { status: 503 });

@@ -14,7 +14,11 @@ import {
 } from "lucide-react";
 import { ThemeToggle, useTheme } from "../preview-theme";
 
+/**
+ * Component props for the mobile navigation header.
+ */
 interface MobileHeaderProps {
+  /** Current authenticated user details and role information, or null if signed out. */
   user: {
     isSignedIn: boolean;
     name: string;
@@ -23,10 +27,22 @@ interface MobileHeaderProps {
     isAdmin: boolean;
     initials: string;
   } | null;
+  /** Count of unread notifications for badge display. */
   unreadCount: number;
+  /** Optional callback fired when the user selects sign-out from the mobile profile drawer. */
   onSignOut?: () => void;
 }
 
+/**
+ * Mobile-specific sticky top navigation header (< 768px).
+ *
+ * @remarks
+ * Features:
+ * - Brand icon and live pulse indicator.
+ * - Interactive theme toggle button (light/dark mode).
+ * - Notification bell with dynamic unread counter badge.
+ * - Profile avatar trigger opening a bottom sheet drawer with account links, admin desk, and sign-out.
+ */
 export function MobileHeader({ user, unreadCount, onSignOut }: MobileHeaderProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";

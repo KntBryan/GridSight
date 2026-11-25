@@ -4,10 +4,22 @@ import Link from "next/link";
 import { ArrowLeft, Zap, ClipboardList, Send, Users } from "lucide-react";
 import { ThemeToggle, useTheme } from "@/components/preview/preview-theme";
 
+/**
+ * Component props for the administrative workspace header.
+ */
 type AdminHeaderProps = {
+  /** Active administrative subpage identifier. */
   activePage: "desk" | "updates" | "accounts";
 };
 
+/**
+ * Top navigation header for administrative workspace pages (`/admin`, `/admin/updates`, `/admin/accounts`).
+ *
+ * @remarks
+ * Renders:
+ * - Desktop: Full-width navigation bar with breadcrumb brand, subpage pills, "Back to live map", and theme toggle.
+ * - Mobile: Compact sticky bar with direct map exit and a horizontal bottom navigation bar for touch switching between Desk, Updates, and Accounts.
+ */
 export function AdminHeader({ activePage }: AdminHeaderProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";

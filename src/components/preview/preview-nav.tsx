@@ -24,14 +24,26 @@ import { MobileHeader } from "./mobile/mobile-header";
 import { MobileBottomNav } from "./mobile/mobile-bottom-nav";
 import { MobileReportFab } from "./mobile/mobile-report-fab";
 
+/**
+ * Available active navigation views in the public citizen portal.
+ */
 export type PreviewTab = "home" | "map" | "updates" | "dashboard";
 
+/**
+ * Component props for the top navigation bar.
+ */
 interface PreviewNavProps {
+  /** Currently selected navigation view tab. */
   currentTab: PreviewTab;
+  /** Callback fired when a tab is selected by user click/tap. */
   onSelectTab: (tab: PreviewTab) => void;
+  /** Callback to launch the outage reporting dialog. */
   onOpenReport: () => void;
 }
 
+/**
+ * Authenticated citizen session and permission state.
+ */
 interface UserState {
   isSignedIn: boolean;
   name: string;
@@ -41,6 +53,14 @@ interface UserState {
   initials: string;
 }
 
+/**
+ * Primary responsive navigation controller for GridSight.
+ *
+ * @remarks
+ * Renders:
+ * - Desktop (`md:` and above): Sticky full-width header with brand, navigation tabs, unread notifications indicator, theme switcher, and profile dropdown menu.
+ * - Mobile (`< md:`): Delegates to `MobileHeader`, `MobileBottomNav`, and `MobileReportFab` for native mobile app ergonomics.
+ */
 export function PreviewNav({ currentTab, onSelectTab, onOpenReport }: PreviewNavProps) {
   const router = useRouter();
   const { theme } = useTheme();

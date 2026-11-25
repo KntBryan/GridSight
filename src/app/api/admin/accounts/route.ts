@@ -10,12 +10,24 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+/**
+ * Validation schema for administrator account management actions:
+ * - `invite`: Invites a new user via Supabase Auth email.
+ * - `promote`: Escalates a confirmed user to the `admin` role.
+ * - `demote`: Reverts an administrator to a regular `user` role.
+ */
 const mutationSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("invite"), email: z.string().trim().email().max(254) }),
   z.object({ action: z.literal("promote"), userId: z.string().uuid() }),
   z.object({ action: z.literal("demote"), userId: z.string().uuid() }),
 ]);
 
+/**
+ * Verifies that the requesting user is authenticated and holds verified administrator credentials.
+ *
+ * @returns {Promise<{ ok: true, supabase: SupabaseClient, user: User } | { ok: false, response: NextResponse }>}
+ * Authorization result or standard forbidden/unauthorized response.
+ */
 async function authorizeAdmin() {
   const supabase = await createSupabaseServerClient();
   const authorization = await requireAdmin(supabase);
@@ -23,6 +35,12 @@ async function authorizeAdmin() {
   return { ok: true, supabase, user: authorization.user } as const;
 }
 
+/**
+ * Enforces sliding-window rate limiting on sensitive administrative mutations (5 actions/minute per admin).
+ *
+ * @param userId - Unique identifier of the calling administrator.
+ * @returns {Promise<NextResponse | null>} Null if rate limit is respected, or HTTP 429/503 response if violated/unavailable.
+ */
 async function enforceRateLimit(userId: string) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -44,6 +62,14 @@ async function enforceRateLimit(userId: string) {
   }
 }
 
+/**
+ * Retrieves user profiles and the administrative account audit log.
+ *
+ * @returns {Promise<NextResponse>} JSON response containing `profiles` and `audit` records (HTTP 200),
+ * or an error status (HTTP 401, 403, 429, 500).
+ *
+ * @security Admin - Requires active administrator session and role.
+ */
 export async function GET() {
   const authorization = await authorizeAdmin();
   if (!authorization.ok) return authorization.response;
@@ -60,6 +86,19 @@ export async function GET() {
   return NextResponse.json({ profiles, audit }, { headers: { "Cache-Control": "no-store" } });
 }
 
+/**
+ * Performs administrative account management mutations (invite, promote, demote).
+ *
+ * @param request - Next.js HTTP request containing the JSON mutation action and parameters.
+ * @returns {Promise<NextResponse>} Success message (HTTP 200) or error status (HTTP 400, 401, 403, 429, 500, 502, 503).
+ *
+ * @remarks
+ * In addition to strict role verification:
+ * - `invite`: Uses Supabase Auth Admin Service Role API to invite users, recording an audit event.
+ * - `promote` / `demote`: Executes the `admin_set_account_role` database function, preventing demotion of the last remaining admin and enforcing email verification.
+ *
+ * @security Admin - Requires active administrator session and role.
+ */
 export async function POST(request: NextRequest) {
   const authorization = await authorizeAdmin();
   if (!authorization.ok) return authorization.response;

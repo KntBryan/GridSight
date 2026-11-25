@@ -1,3 +1,6 @@
+/**
+ * Represents an official barangay option in Surigao City with geographic centroid and PSGC mapping.
+ */
 export type BarangayOption = {
   name: string;
   slug: string;
@@ -7,6 +10,10 @@ export type BarangayOption = {
   territory?: string;
 };
 
+/**
+ * Registry of all 54 official barangays in the City of Surigao, Surigao del Norte, Philippines.
+ * Centroids and PSGC identifiers mirror seed records in `supabase/migrations/0002_seed_surigao_city_areas.sql`.
+ */
 export const SURIGAO_CITY_BARANGAYS: BarangayOption[] = [
   { name: "Alang-alang", slug: "ph1606724001", code: "PH1606724001", latitude: 9.88245198, longitude: 125.51931173, territory: "Island (Hikdop Island)" },
   { name: "Alegria", slug: "ph1606724002", code: "PH1606724002", latitude: 9.88899216, longitude: 125.5276284, territory: "Island (Hikdop Island)" },

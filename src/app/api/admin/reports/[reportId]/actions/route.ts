@@ -3,8 +3,24 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/supabase/admin-auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+/**
+ * Validation schema for report moderation actions.
+ */
 const actionSchema = z.object({ action: z.enum(["verified", "dismissed"]), reason: z.string().trim().max(300).optional() });
 
+/**
+ * Moderates a citizen outage report (verifying or dismissing).
+ *
+ * @param request - Next.js HTTP request with JSON payload `{ action, reason? }`.
+ * @param params - Route parameters containing the target `reportId` UUID.
+ * @returns {Promise<NextResponse>} JSON response indicating success ({ ok: true }) or error status (HTTP 400, 401, 403, 500).
+ *
+ * @remarks
+ * Executes the PostgreSQL `moderate_report` stored procedure, ensuring atomic state
+ * updates, verification metrics re-calculation, and audit trail generation.
+ *
+ * @security Admin - Requires active administrator session and role.
+ */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ reportId: string }> }) {
   const { reportId } = await params;
   const parsedId = z.string().uuid().safeParse(reportId);

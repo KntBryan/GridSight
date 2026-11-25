@@ -2,6 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { authCookieOptions } from "@/lib/supabase/cookie-options";
 
+/**
+ * Creates an asynchronous server-side Supabase client bound to Next.js cookie headers.
+ *
+ * @returns {Promise<ReturnType<typeof createServerClient>>} Initialized Supabase SSR client instance.
+ * @throws {Error} If `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` are not configured.
+ *
+ * @remarks
+ * Safely accesses `cookies()` from Next.js server context with 30-day persistent cookie options.
+ * Handles read-only constraints during React Server Component (RSC) rendering by catching set errors.
+ */
 export async function createSupabaseServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

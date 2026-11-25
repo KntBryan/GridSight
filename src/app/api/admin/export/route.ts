@@ -3,14 +3,27 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/supabase/admin-auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+/**
+ * Validates date query parameters in strict ISO calendar format (YYYY-MM-DD).
+ */
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
   const date = new Date(`${value}T00:00:00.000Z`);
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 });
 
+/**
+ * Shape of geographic area data joined in export queries.
+ */
 type ExportArea = { name: string; city: string };
+
+/**
+ * Shape of parent outage cluster data joined in export queries.
+ */
 type ExportOutage = { status: string; first_reported_at: string; restored_at: string | null };
 
+/**
+ * Typed row representation for raw database report queries.
+ */
 type ExportRow = {
   id: string;
   status: string;
@@ -21,12 +34,34 @@ type ExportRow = {
   outages: ExportOutage | ExportOutage[] | null;
 };
 
+/**
+ * Sanitizes and quotes a cell value for safe RFC 4180 CSV export.
+ *
+ * @param value - Any raw cell value.
+ * @returns {string} Escaped, double-quoted CSV cell string.
+ *
+ * @remarks
+ * Neutralizes CSV Formula Injection (DDE attacks) by prefixing cells that begin
+ * with `=`, `+`, `-`, or `@` with a single apostrophe (`'`).
+ */
 function csvCell(value: unknown) {
   const raw = value == null ? "" : String(value);
   const text = /^[\t\r ]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+/**
+ * Streams a UTF-8 encoded CSV file of citizen outage reports within a date range.
+ *
+ * @param request - Next.js HTTP request with optional `from` and `to` query parameters (YYYY-MM-DD).
+ * @returns {Promise<NextResponse>} CSV attachment stream (HTTP 200) or error response (HTTP 400, 401, 403, 500).
+ *
+ * @remarks
+ * Includes a UTF-8 Byte Order Mark (`\uFEFF`) for seamless Microsoft Excel compatibility.
+ * Default range is the last 30 days if no dates are supplied. Caps at 10,000 records.
+ *
+ * @security Admin - Requires active administrator session and role.
+ */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const fromInput = params.get("from");

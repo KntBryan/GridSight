@@ -4,8 +4,25 @@ import { createClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/supabase/admin-auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+/**
+ * Validation schema for overriding an outage incident's lifecycle status.
+ */
 const overrideSchema = z.object({ status: z.enum(["unconfirmed", "active", "restored"]) });
 
+/**
+ * Manually updates the lifecycle status of an outage incident.
+ *
+ * @param request - Next.js HTTP request with JSON payload containing `{ status }`.
+ * @param params - Route parameters containing the target `outageId` UUID.
+ * @returns {Promise<NextResponse>} JSON response indicating success ({ ok: true }) or error status (HTTP 400, 401, 403, 500).
+ *
+ * @remarks
+ * Sets `restored_at` timestamp when moving to `restored`.
+ * If marked as restored, automatically alerts citizens who follow that barangay with an in-app
+ * restoration notification via the service role client.
+ *
+ * @security Admin - Requires active administrator session and role.
+ */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ outageId: string }> }) {
   const { outageId } = await params;
   const id = z.string().uuid().safeParse(outageId);

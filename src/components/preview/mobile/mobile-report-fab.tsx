@@ -2,10 +2,21 @@
 
 import { Zap } from "lucide-react";
 
+/**
+ * Component props for the mobile report floating action button.
+ */
 interface MobileReportFabProps {
+  /** Callback fired when the user taps the floating action button to open the report modal. */
   onClick: () => void;
 }
 
+/**
+ * Mobile-specific floating action button (FAB) for reporting power outages.
+ *
+ * @remarks
+ * Anchored above the fixed bottom navigation bar and respects safe-area insets.
+ * Provides a single-tap reporting flow from anywhere in the mobile interface.
+ */
 export function MobileReportFab({ onClick }: MobileReportFabProps) {
   return (
     <button

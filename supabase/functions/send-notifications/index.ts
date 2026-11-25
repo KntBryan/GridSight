@@ -1,6 +1,19 @@
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * Supabase Edge Function: Web Push Notification Dispatcher
+ *
+ * @remarks
+ * Cron worker that claims pending notifications from the queue via `claim_push_notifications`,
+ * sends encrypted Web Push payloads using VAPID keys, automatically purges expired endpoints
+ * (HTTP 404 / 410 Gone), and records final delivery states via `finish_push_notification`.
+ *
+ * Security: Protected by a shared secret passed in the `x-cron-secret` header.
+ *
+ * @param request - HTTP POST request with `x-cron-secret` header.
+ * @returns {Promise<Response>} JSON response with the number of delivered notifications.
+ */
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
   const secret = Deno.env.get("PUSH_CRON_SECRET");

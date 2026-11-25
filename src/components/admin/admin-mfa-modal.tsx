@@ -6,12 +6,21 @@ import { KeyRound, LoaderCircle, RefreshCw, RotateCcw, ShieldAlert, ShieldCheck 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useTheme } from "@/components/preview/preview-theme";
 
+/**
+ * Component props for the Administrator Multi-Factor Authentication modal.
+ */
 interface AdminMfaModalProps {
+  /** Whether the MFA verification/enrollment modal dialog is active. */
   isOpen: boolean;
+  /** Callback fired upon successful verification of an AAL2 TOTP challenge. */
   onSuccess: () => void;
+  /** Optional callback fired when the administrator dismisses or cancels the dialog. */
   onCancel?: () => void;
 }
 
+/**
+ * Shape of an enrolled TOTP authentication factor returned by Supabase Auth MFA.
+ */
 interface TotpFactor {
   id: string;
   friendly_name?: string;
@@ -20,8 +29,21 @@ interface TotpFactor {
   updated_at?: string;
 }
 
+/**
+ * Current operating step of the MFA modal.
+ */
 type ModalStep = "verify" | "enroll-new";
 
+/**
+ * Security modal enforcing Authenticator Assurance Level 2 (AAL2) TOTP verification for administrators.
+ *
+ * @remarks
+ * Capabilities:
+ * - Detects whether user has verified TOTP factors enrolled.
+ * - Handles QR code generation and secret key display for new authenticator app enrollment (Google Authenticator, Authy, 1Password, etc.).
+ * - Verifies 6-digit TOTP code via Supabase Auth challenge API.
+ * - Provides one-click MFA reset fallback (`/api/admin/mfa/reset`) when factors are corrupted or desynchronized.
+ */
 export function AdminMfaModal({ isOpen, onSuccess, onCancel }: AdminMfaModalProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
