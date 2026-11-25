@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   X,
   Zap,
+  Camera,
+  ExternalLink,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { AdminHeader } from "@/components/admin/admin-header";
@@ -27,6 +29,7 @@ type ReviewReport = {
   status: string;
   verification_status: string;
   notes: string | null;
+  photo_path: string | null;
   created_at: string;
   areas: { name: string; city: string }[] | null;
 };
@@ -121,6 +124,29 @@ function AdminPageInner() {
   const [reviewAction, setReviewAction] = useState<"verified" | "dismissed">("verified");
   const [reviewReason, setReviewReason] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [activePhotoModal, setActivePhotoModal] = useState<{ url: string; areaName: string } | null>(null);
+  const [photoLoadingId, setPhotoLoadingId] = useState<string | null>(null);
+
+  const handleViewPhoto = async (report: ReviewReport) => {
+    if (!report.photo_path) return;
+    setPhotoLoadingId(report.id);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.storage.from("report-photos").createSignedUrl(report.photo_path, 3600);
+      if (error || !data?.signedUrl) {
+        setError("Could not load report photo.");
+        return;
+      }
+      setActivePhotoModal({
+        url: data.signedUrl,
+        areaName: report.areas?.[0]?.name || "Surigao City Area",
+      });
+    } catch {
+      setError("Could not load report photo.");
+    } finally {
+      setPhotoLoadingId(null);
+    }
+  };
 
   const loadReports = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -176,7 +202,7 @@ function AdminPageInner() {
 
     const { data, error: queryError } = await supabase
       .from("reports")
-      .select("id, status, verification_status, notes, created_at, areas(name, city)")
+      .select("id, status, verification_status, notes, photo_path, created_at, areas(name, city)")
       .order("created_at", { ascending: false })
       .limit(250);
 
@@ -641,6 +667,27 @@ function AdminPageInner() {
                                   {report.notes}
                                 </p>
                               )}
+                              {report.photo_path && (
+                                <div className="mt-1.5 flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleViewPhoto(report)}
+                                    disabled={photoLoadingId === report.id}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-semibold transition active:scale-95 ${
+                                      isDark
+                                        ? "border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
+                                        : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                    }`}
+                                  >
+                                    {photoLoadingId === report.id ? (
+                                      <LoaderCircle className="h-3 w-3 animate-spin text-blue-400" />
+                                    ) : (
+                                      <Camera className="h-3 w-3 text-blue-500" />
+                                    )}
+                                    <span>View photo evidence</span>
+                                  </button>
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex shrink-0 items-center gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
@@ -1055,6 +1102,62 @@ function AdminPageInner() {
         }}
         onCancel={() => setMfaRequired(false)}
       />
+
+      {/* Photo Lightbox Modal for Operations Staff */}
+      {activePhotoModal && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setActivePhotoModal(null)}
+        >
+          <div
+            className={`relative max-w-2xl w-full max-h-[90vh] flex flex-col rounded-2xl overflow-hidden border shadow-2xl ${
+              isDark ? "bg-[#0b1a2e] border-white/15 text-white" : "bg-white border-slate-200 text-slate-900"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between px-4 py-3 border-b ${
+              isDark ? "border-white/10" : "border-slate-200"
+            }`}>
+              <div className="flex items-center gap-2">
+                <Camera size={16} className="text-blue-500" />
+                <span className="font-heading text-sm font-bold truncate">
+                  Field Photo Evidence · {activePhotoModal.areaName}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivePhotoModal(null)}
+                className={`p-1.5 rounded-lg transition ${
+                  isDark ? "hover:bg-white/10 text-white/60 hover:text-white" : "hover:bg-slate-100 text-slate-500"
+                }`}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto bg-black/40 flex items-center justify-center p-2 min-h-[240px]">
+              <img
+                src={activePhotoModal.url}
+                alt="Field photo evidence"
+                className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+              />
+            </div>
+            <div className={`px-4 py-2.5 text-xs flex justify-between items-center border-t ${
+              isDark ? "border-white/10 text-white/50" : "border-slate-200 text-slate-500"
+            }`}>
+              <span>City dispatch authenticated view</span>
+              <a
+                href={activePhotoModal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-500 hover:underline font-semibold"
+              >
+                <span>Open original</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

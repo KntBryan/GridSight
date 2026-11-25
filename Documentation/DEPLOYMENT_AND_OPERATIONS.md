@@ -120,9 +120,9 @@ npx web-push generate-vapid-keys
 ```
 
 Copy the generated keys into your environment settings:
-* Public Key $\to` `VAPID_PUBLIC_KEY`
-* Private Key $\to` `VAPID_PRIVATE_KEY`
-* Subject $\to` `VAPID_SUBJECT="mailto:admin@gridsight.ph"`
+* Public Key $\to$ `VAPID_PUBLIC_KEY`
+* Private Key $\to$ `VAPID_PRIVATE_KEY`
+* Subject $\to$ `VAPID_SUBJECT="mailto:admin@gridsight.ph"`
 
 ---
 

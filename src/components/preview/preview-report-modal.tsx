@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Send, MapPin, Camera, ShieldCheck, Check } from "lucide-react";
+import { X, Send, MapPin, Camera, ShieldCheck, Check, AlertCircle } from "lucide-react";
 import { SURIGAO_CITY_BARANGAYS } from "@/lib/surigao-city-barangays";
+import { queueReport } from "@/lib/offline-queue";
 import { useTheme } from "./preview-theme";
 
 interface PreviewReportModalProps {
@@ -11,6 +12,9 @@ interface PreviewReportModalProps {
   onSuccessToast: (msg: string) => void;
   onAuthRequired: () => void;
 }
+
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // 4 MB
+const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export function PreviewReportModal({
   isOpen,
@@ -25,13 +29,30 @@ export function PreviewReportModal({
   const [observation, setObservation] = useState<"no_power" | "flickering" | "restored">("no_power");
   const [notes, setNotes] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    if (isOpen) setSubmitError("");
-  }, [isOpen]);
+    if (isOpen) {
+      setSubmitError("");
+    } else {
+      setSelectedPhoto(null);
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+        setPhotoPreviewUrl(null);
+      }
+    }
+  }, [isOpen, photoPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) {
+        URL.revokeObjectURL(photoPreviewUrl);
+      }
+    };
+  }, [photoPreviewUrl]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -47,10 +68,63 @@ export function PreviewReportModal({
 
   if (!isOpen) return null;
 
+  function handlePhotoSelect(file: File) {
+    setSubmitError("");
+    if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+      setSubmitError("Photo must be a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setSubmitError(`Photo size is ${(file.size / (1024 * 1024)).toFixed(1)} MB. Maximum allowed is 4 MB.`);
+      return;
+    }
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+    setSelectedPhoto(file);
+    setPhotoPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function handlePhotoRemove() {
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+      setPhotoPreviewUrl(null);
+    }
+    setSelectedPhoto(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setSubmitError("");
+
+    // If client is offline, queue into IndexedDB
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      try {
+        const requestId = crypto.randomUUID();
+        await queueReport({
+          requestId,
+          areaSlug: barangaySlug,
+          status: observation,
+          notes: notes.trim(),
+          latitude: null,
+          longitude: null,
+          photo: selectedPhoto,
+          queuedAt: new Date().toISOString(),
+        });
+        setSubmitted(true);
+        onSuccessToast("Saved offline. Your report will automatically send when connection returns.");
+        setTimeout(() => {
+          setSubmitted(false);
+          onClose();
+        }, 1500);
+      } catch {
+        setSubmitError("Could not save report offline. Please try again.");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
 
     try {
       const body = new FormData();
@@ -84,7 +158,28 @@ export function PreviewReportModal({
         onClose();
       }, 1500);
     } catch {
-      setSubmitError("Could not connect to GridSight. Check your connection and try again.");
+      // Network failure, try saving offline
+      try {
+        const requestId = crypto.randomUUID();
+        await queueReport({
+          requestId,
+          areaSlug: barangaySlug,
+          status: observation,
+          notes: notes.trim(),
+          latitude: null,
+          longitude: null,
+          photo: selectedPhoto,
+          queuedAt: new Date().toISOString(),
+        });
+        setSubmitted(true);
+        onSuccessToast("Connection lost. Report saved offline and will send automatically.");
+        setTimeout(() => {
+          setSubmitted(false);
+          onClose();
+        }, 1500);
+      } catch {
+        setSubmitError("Could not connect to GridSight. Check your connection and try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -284,39 +379,62 @@ export function PreviewReportModal({
               >
                 Attach Photo Evidence (City staff review only)
               </label>
-              <div className="flex items-center gap-3">
-                <label
-                  className={`cursor-pointer inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[12.5px] font-medium transition ${
-                    isDark
-                      ? "border-white/10 bg-[#081524] text-white/80 hover:bg-white/[0.06]"
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  <Camera size={15} />
-                  <span>{selectedPhoto ? selectedPhoto.name : "Select photo (under 4MB)"}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) {
-                        setSelectedPhoto(e.target.files[0]);
-                      }
-                    }}
-                  />
-                </label>
-                {selectedPhoto && (
+              
+              {selectedPhoto && photoPreviewUrl ? (
+                <div className={`flex items-center gap-3 p-2.5 rounded-xl border ${
+                  isDark ? "border-white/10 bg-[#081524]" : "border-slate-200 bg-slate-50"
+                }`}>
+                  <div className="relative h-14 w-14 shrink-0 rounded-lg overflow-hidden border border-white/10 bg-black/20">
+                    <img
+                      src={photoPreviewUrl}
+                      alt="Attachment preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[12.5px] font-medium truncate ${isDark ? "text-white" : "text-slate-800"}`}>
+                      {selectedPhoto.name}
+                    </p>
+                    <p className={`text-[11px] ${isDark ? "text-white/50" : "text-slate-500"}`}>
+                      {(selectedPhoto.size / (1024 * 1024)).toFixed(2)} MB · Attached
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setSelectedPhoto(null)}
-                    className={`text-xs transition ${
-                      isDark ? "text-white/40 hover:text-white" : "text-slate-400 hover:text-slate-700"
-                    }`}
+                    onClick={handlePhotoRemove}
+                    className="shrink-0 p-1.5 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition"
                   >
                     Remove
                   </button>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <label
+                    className={`cursor-pointer inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[12.5px] font-medium transition ${
+                      isDark
+                        ? "border-white/10 bg-[#081524] text-white/80 hover:bg-white/[0.06]"
+                        : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Camera size={15} />
+                    <span>Select photo (under 4MB)</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handlePhotoSelect(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  <span className={`text-[11px] ${isDark ? "text-white/40" : "text-slate-400"}`}>
+                    JPG, PNG, WebP
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Privacy Notice */}

@@ -18,17 +18,22 @@ import {
   AlertCircle,
   XCircle,
   LoaderCircle,
+  Camera,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { ThemeProvider, ThemeToggle, useTheme } from "@/components/preview/preview-theme";
 import { PreviewReportModal } from "@/components/preview/preview-report-modal";
 import { ProtectedPage } from "@/components/auth/auth-gate";
 import { authHref } from "@/lib/auth/return-path.mjs";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Report = {
   id: string;
   status: "no_power" | "flickering" | "restored";
   verification_status: "pending" | "verified" | "dismissed";
   notes: string | null;
+  photo_path: string | null;
   created_at: string;
   areas: { name: string; city: string }[] | null;
 };
@@ -47,11 +52,34 @@ function ReportsPageInner() {
   const [search, setSearch] = useState("");
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [activePhotoModal, setActivePhotoModal] = useState<{ url: string; areaName: string } | null>(null);
+  const [photoLoadingId, setPhotoLoadingId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  async function handleViewPhoto(report: Report) {
+    if (!report.photo_path) return;
+    setPhotoLoadingId(report.id);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.storage.from("report-photos").createSignedUrl(report.photo_path, 3600);
+      if (error || !data?.signedUrl) {
+        showToast("Photo could not be loaded.");
+        return;
+      }
+      setActivePhotoModal({
+        url: data.signedUrl,
+        areaName: report.areas?.[0]?.name || "Surigao City Area",
+      });
+    } catch {
+      showToast("Photo could not be loaded.");
+    } finally {
+      setPhotoLoadingId(null);
+    }
+  }
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("report") === "1") {
@@ -398,6 +426,14 @@ function ReportsPageInner() {
                         </span>
                         {observationPill(report.status)}
                         {verificationPill(report.verification_status)}
+                        {report.photo_path && (
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium border ${
+                            isDark ? "border-blue-500/30 bg-blue-500/10 text-blue-400" : "border-blue-200 bg-blue-50 text-blue-600"
+                          }`}>
+                            <Camera size={11} />
+                            <span>Photo</span>
+                          </span>
+                        )}
                       </div>
 
                       {report.notes && (
@@ -418,6 +454,28 @@ function ReportsPageInner() {
                         </span>
                       </div>
                     </div>
+
+                    {report.photo_path && (
+                      <div className="shrink-0 self-start sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => handleViewPhoto(report)}
+                          disabled={photoLoadingId === report.id}
+                          className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${
+                            isDark
+                              ? "border-white/10 bg-[#081524] text-white hover:bg-white/[0.06]"
+                              : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          {photoLoadingId === report.id ? (
+                            <LoaderCircle size={13} className="animate-spin text-blue-400" />
+                          ) : (
+                            <Camera size={13} className="text-blue-500" />
+                          )}
+                          <span>View photo</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -433,6 +491,62 @@ function ReportsPageInner() {
         onSuccessToast={showToast}
         onAuthRequired={redirectToSignInForReport}
       />
+
+      {/* Photo Lightbox Modal */}
+      {activePhotoModal && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setActivePhotoModal(null)}
+        >
+          <div
+            className={`relative max-w-2xl w-full max-h-[90vh] flex flex-col rounded-2xl overflow-hidden border shadow-2xl ${
+              isDark ? "bg-[#0b1a2e] border-white/15 text-white" : "bg-white border-slate-200 text-slate-900"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between px-4 py-3 border-b ${
+              isDark ? "border-white/10" : "border-slate-200"
+            }`}>
+              <div className="flex items-center gap-2">
+                <Camera size={16} className="text-blue-500" />
+                <span className="font-heading text-sm font-bold truncate">
+                  Attached Photo · {activePhotoModal.areaName}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivePhotoModal(null)}
+                className={`p-1.5 rounded-lg transition ${
+                  isDark ? "hover:bg-white/10 text-white/60 hover:text-white" : "hover:bg-slate-100 text-slate-500"
+                }`}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto bg-black/40 flex items-center justify-center p-2 min-h-[240px]">
+              <img
+                src={activePhotoModal.url}
+                alt="Outage evidence"
+                className="max-h-[75vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+              />
+            </div>
+            <div className={`px-4 py-2.5 text-xs flex justify-between items-center border-t ${
+              isDark ? "border-white/10 text-white/50" : "border-slate-200 text-slate-500"
+            }`}>
+              <span>Verified encrypted private storage</span>
+              <a
+                href={activePhotoModal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-500 hover:underline font-semibold"
+              >
+                <span>Open original</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

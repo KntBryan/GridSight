@@ -15,17 +15,17 @@ The application is built with:
 
 ## System Documentation Suite
 
-GridSight is documented across comprehensive operational, architectural, and legal guides:
+All system documentation is organized under the [`Documentation/`](Documentation/) directory:
 
-| Document | Purpose |
+| Document | Description |
 | :--- | :--- |
-| [**`API.md`**](API.md) | Endpoint specifications, schemas, rate limits, and error codes. |
-| [**`ARCHITECTURE.md`**](ARCHITECTURE.md) | C4 Context/Container models, Mermaid ERDs, state machines, and threat models. |
-| [**`USER_MANUAL.md`**](USER_MANUAL.md) | Citizen reporting guide, mobile PWA installation, and admin dispatch manual. |
-| [**`DEPLOYMENT_AND_OPERATIONS.md`**](DEPLOYMENT_AND_OPERATIONS.md) | Production setup, 21-part SQL migrations, Edge Functions, cron, and runbook. |
-| [**`CODE_DOCUMENTATION.md`**](CODE_DOCUMENTATION.md) | TSDoc/JSDoc standards, API routes reference, core libraries, and PostgreSQL RPCs. |
-| [**`CHANGELOG.md`**](CHANGELOG.md) | SemVer release progression and version history. |
-| [**`LICENSE_AND_NOTICE.md`**](LICENSE_AND_NOTICE.md) | Software licensing terms, emergency disclaimer, and open-source attributions. |
+| [**`API.md`**](Documentation/API.md) | Comprehensive endpoint schemas, authentication levels, Upstash rate limits, and error codes. |
+| [**`ARCHITECTURE.md`**](Documentation/ARCHITECTURE.md) | C4 architecture models (Context & Container), Mermaid ERD, sequence diagrams, and threat model. |
+| [**`USER_MANUAL.md`**](Documentation/USER_MANUAL.md) | Complete citizen reporting guide, mobile PWA installation, and admin dispatch manual. |
+| [**`DEPLOYMENT_AND_OPERATIONS.md`**](Documentation/DEPLOYMENT_AND_OPERATIONS.md) | Production setup, 21-part SQL migrations, Edge Functions, cron, and runbook. |
+| [**`CODE_DOCUMENTATION.md`**](Documentation/CODE_DOCUMENTATION.md) | TSDoc/JSDoc standards, API routes reference, core libraries, and PostgreSQL RPCs. |
+| [**`CHANGELOG.md`**](Documentation/CHANGELOG.md) | SemVer release progression and version history. |
+| [**`LICENSE_AND_NOTICE.md`**](Documentation/LICENSE_AND_NOTICE.md) | Software licensing terms, emergency disclaimer, and open-source attributions. |
 
 The current implementation supports:
 
