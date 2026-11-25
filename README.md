@@ -13,7 +13,19 @@ The application is built with:
 - PWA service worker support for browser installability and push handling
 - IndexedDB for queued offline reports
 
-Comprehensive endpoint schemas, authentication levels, and error codes are documented in [API.md](API.md). System architecture, C4 diagrams, ERDs, and spatial design workflows are documented in [ARCHITECTURE.md](ARCHITECTURE.md). Complete citizen and dispatcher operating instructions are documented in [USER_MANUAL.md](USER_MANUAL.md). Version release history and updates are tracked in [CHANGELOG.md](CHANGELOG.md).
+## System Documentation Suite
+
+All system documentation is organized under the [`Documentation/`](Documentation/) directory:
+
+| Document | Description |
+| :--- | :--- |
+| [**`API.md`**](Documentation/API.md) | Comprehensive endpoint schemas, authentication levels, Upstash rate limits, and error codes. |
+| [**`ARCHITECTURE.md`**](Documentation/ARCHITECTURE.md) | C4 architecture models (Context & Container), Mermaid ERD, sequence diagrams, and threat model. |
+| [**`USER_MANUAL.md`**](Documentation/USER_MANUAL.md) | Complete citizen reporting guide, mobile PWA installation, and admin dispatch manual. |
+| [**`DEPLOYMENT_AND_OPERATIONS.md`**](Documentation/DEPLOYMENT_AND_OPERATIONS.md) | Production setup, 21-part SQL migrations, Edge Functions, cron, and runbook. |
+| [**`CODE_DOCUMENTATION.md`**](Documentation/CODE_DOCUMENTATION.md) | TSDoc/JSDoc standards, API routes reference, core libraries, and PostgreSQL RPCs. |
+| [**`CHANGELOG.md`**](Documentation/CHANGELOG.md) | SemVer release progression and version history. |
+| [**`LICENSE_AND_NOTICE.md`**](Documentation/LICENSE_AND_NOTICE.md) | Software licensing terms, emergency disclaimer, and open-source attributions. |
 
 The current implementation supports:
 
