@@ -13,6 +13,8 @@ The application is built with:
 - PWA service worker support for browser installability and push handling
 - IndexedDB for queued offline reports
 
+Comprehensive endpoint schemas, authentication levels, and error codes are documented in [API.md](API.md).
+
 The current implementation supports:
 
 - A responsive home and map experience with protected sections for authenticated users
